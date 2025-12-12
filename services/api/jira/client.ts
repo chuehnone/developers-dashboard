@@ -14,6 +14,10 @@ export class JiraClient {
 
     // Create Basic Auth header (base64 encode email:token)
     this.authHeader = 'Basic ' + btoa(`${this.email}:${this.apiToken}`);
+
+    console.log('[Jira Client] Initialized with domain:', this.domain);
+    console.log('[Jira Client] Email:', this.email);
+    console.log('[Jira Client] Dev mode:', import.meta.env.DEV);
   }
 
   private getBaseUrl(): string {
@@ -39,12 +43,16 @@ export class JiraClient {
     });
 
     if (!response.ok) {
-      let errorDetail = '';
+      // 先讀取 text，然後嘗試 parse JSON
+      const errorText = await response.text();
+      let errorDetail = errorText;
+
       try {
-        const errorJson = await response.json();
+        const errorJson = JSON.parse(errorText);
         errorDetail = JSON.stringify(errorJson, null, 2);
       } catch {
-        errorDetail = await response.text();
+        // 如果不是 JSON，就使用原始 text
+        errorDetail = errorText;
       }
 
       console.error(`[Jira API] Error Response:`, errorDetail);
@@ -59,41 +67,64 @@ export class JiraClient {
   async post<T>(endpoint: string, body: unknown): Promise<T> {
     const url = `${this.getBaseUrl()}${endpoint}`;
 
+    console.log(`[Jira API] POST ${url}`);
+    console.log(`[Jira API] Request Body:`, JSON.stringify(body, null, 2));
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': this.authHeader,
+        'Accept': 'application/json',
+        // X-Atlassian-Token 由 Vite proxy 設置（瀏覽器端無法設置）
       },
       body: JSON.stringify(body),
     });
 
     if (!response.ok) {
+      // 先讀取 text，然後嘗試 parse JSON
       const errorText = await response.text();
+      let errorDetail = errorText;
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorDetail = JSON.stringify(errorJson, null, 2);
+      } catch {
+        // 如果不是 JSON，就使用原始 text
+        errorDetail = errorText;
+      }
+
+      console.error(`[Jira API] Error Response:`, errorDetail);
       throw new Error(
-        `Jira API error: ${response.status} ${response.statusText} - ${errorText}`
+        `Jira API error: ${response.status} ${response.statusText}\nURL: ${url}\nDetails: ${errorDetail}`
       );
     }
 
-    return response.json();
+    const responseData = await response.json();
+    console.log(`[Jira API] Response:`, responseData);
+    return responseData;
   }
 
   async searchIssues(jql: string, fields: string[] = [], maxResults: number = 100): Promise<{
     issues: unknown[];
     total: number;
   }> {
-    const endpoint = `/rest/api/3/search`;
-    const params = new URLSearchParams({
+    const endpoint = `/rest/api/3/search/jql`;
+    const body: Record<string, unknown> = {
       jql,
-      maxResults: maxResults.toString(),
-    });
+      maxResults,
+    };
 
     // Only add fields if provided
     if (fields.length > 0) {
-      params.append('fields', fields.join(','));
+      body.fields = fields;
     }
 
-    return this.get(`${endpoint}?${params.toString()}`);
+    console.log(`[Jira searchIssues] JQL: ${jql}`);
+    console.log(`[Jira searchIssues] Fields: ${fields.join(', ')}`);
+    console.log(`[Jira searchIssues] MaxResults: ${maxResults}`);
+
+    return this.post(endpoint, body);
   }
 
   async getBoard(boardId: number): Promise<unknown> {
