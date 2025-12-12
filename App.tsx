@@ -1,10 +1,11 @@
 
 import React, { useEffect, useState } from 'react';
-import { 
-  Zap, 
-  GitMerge, 
-  Clock, 
-  Calendar
+import {
+  Zap,
+  GitMerge,
+  Clock,
+  Calendar,
+  AlertTriangle
 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { MetricCard } from './components/MetricCard';
@@ -14,22 +15,33 @@ import { MembersTable } from './components/MembersTable';
 import { MembersPage } from './components/MembersPage';
 import { GithubPage } from './components/GithubPage';
 import { JiraPage } from './components/JiraPage';
-import { fetchDashboardData, fetchGithubAnalytics, fetchJiraAnalytics } from './services/mockData';
+import { fetchDashboardData, fetchGithubAnalytics, fetchJiraAnalytics } from './services/dashboardService';
 import { DeveloperMetric, DashboardSummary, TimeRange, GithubAnalyticsData, JiraAnalyticsData } from './types';
+import { isConfigValid } from './services/config';
 
 const App: React.FC = () => {
   const [data, setData] = useState<DeveloperMetric[]>([]);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [githubData, setGithubData] = useState<GithubAnalyticsData | null>(null);
   const [jiraData, setJiraData] = useState<JiraAnalyticsData | null>(null);
-  
+
   const [loading, setLoading] = useState<boolean>(true);
   const [timeRange, setTimeRange] = useState<TimeRange>('sprint');
   const [currentView, setCurrentView] = useState<string>('overview');
+  const [configErrors, setConfigErrors] = useState<Array<{ variable: string; message: string }>>([]);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+
+      // Validate configuration before loading data
+      const validation = isConfigValid();
+      if (!validation.valid && validation.errors) {
+        setConfigErrors(validation.errors);
+        setLoading(false);
+        return;
+      }
+
       try {
         // Fetch standard dashboard data
         const result = await fetchDashboardData(timeRange);
@@ -43,7 +55,7 @@ const App: React.FC = () => {
 
         const jiraResult = await fetchJiraAnalytics();
         setJiraData(jiraResult);
-        
+
       } catch (error) {
         console.error("Failed to load dashboard data", error);
       } finally {
@@ -53,6 +65,48 @@ const App: React.FC = () => {
 
     loadData();
   }, [timeRange]);
+
+  const renderConfigError = () => {
+    if (configErrors.length === 0) return null;
+
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full bg-slate-900 border border-red-500/30 rounded-lg p-8">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-red-400 mb-2">
+                Configuration Error
+              </h2>
+              <p className="text-slate-300 mb-4">
+                The dashboard requires environment variables to be configured. Please create a <code className="px-2 py-1 bg-slate-800 rounded text-sm">.env.local</code> file in the project root with the following missing variables:
+              </p>
+              <div className="space-y-3 mb-6">
+                {configErrors.map((error, idx) => (
+                  <div key={idx} className="bg-slate-800 border border-slate-700 rounded p-3">
+                    <code className="text-sm text-blue-400">{error.variable}</code>
+                    <p className="text-sm text-slate-400 mt-1">{error.message}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-slate-800 border border-slate-700 rounded p-4">
+                <p className="text-sm text-slate-300 mb-2">
+                  <strong>Quick Start:</strong>
+                </p>
+                <ol className="text-sm text-slate-400 space-y-1 list-decimal list-inside">
+                  <li>Copy <code className="px-1 bg-slate-900 rounded">.env.local.example</code> to <code className="px-1 bg-slate-900 rounded">.env.local</code></li>
+                  <li>Fill in your GitHub and Jira credentials</li>
+                  <li>Restart the development server</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderContent = () => {
     if (loading || !summary) {
@@ -133,6 +187,15 @@ const App: React.FC = () => {
       case 'jira': return 'Sprint health, planning accuracy, and work allocation';
       default: return 'Track key metrics across GitHub and Jira';
     }
+  }
+
+  // Show configuration error screen if there are errors
+  if (configErrors.length > 0) {
+    return (
+      <div className="flex min-h-screen bg-slate-950 text-slate-200 font-sans">
+        {renderConfigError()}
+      </div>
+    );
   }
 
   return (
