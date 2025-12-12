@@ -26,7 +26,6 @@ export const MembersPage: React.FC<MembersPageProps> = ({ data }) => {
     });
   }, [data, searchQuery, roleFilter]);
 
-  const maxVelocity = Math.max(...data.map(d => d.velocity), 1);
   const roles = ['All', ...new Set(data.map(d => d.role))];
 
   return (
@@ -74,8 +73,6 @@ export const MembersPage: React.FC<MembersPageProps> = ({ data }) => {
               <tr>
                 <th className="px-6 py-4">Member Profile</th>
                 <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Jira Workload</th>
-                <th className="px-6 py-4 w-1/5">Velocity (Sprint)</th>
                 <th className="px-6 py-4">GitHub Activity</th>
                 <th className="px-6 py-4 text-right">Impact Score</th>
               </tr>
@@ -117,40 +114,6 @@ export const MembersPage: React.FC<MembersPageProps> = ({ data }) => {
                       }`}>
                       {dev.status}
                     </span>
-                  </td>
-
-                  {/* Jira Workload */}
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                         <span className={`h-2.5 w-2.5 rounded-full ${
-                            dev.activeTickets > 5 ? 'bg-red-500' : 
-                            dev.activeTickets < 2 ? 'bg-yellow-500' : 'bg-emerald-500'
-                         }`} />
-                         <span className="text-sm font-medium text-slate-200">{dev.activeTickets} Active Tickets</span>
-                      </div>
-                      <span className="text-xs text-slate-500 pl-4.5">{dev.bugsFixed} Bugs / {dev.featuresCompleted} Features</span>
-                    </div>
-                  </td>
-
-                  {/* Velocity Progress Bar */}
-                  <td className="px-6 py-4">
-                    <div className="w-full">
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-slate-400 font-medium">Velocity</span>
-                        <span className="text-slate-200 font-bold">{dev.velocity} pts</span>
-                      </div>
-                      <div className="w-full bg-slate-800 rounded-full h-2 relative group-hover:bg-slate-700 transition-colors">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out relative"
-                          style={{ width: `${(dev.velocity / maxVelocity) * 100}%` }}
-                        >
-                           <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-slate-700 pointer-events-none z-10">
-                              {dev.velocity} Story Points
-                           </div>
-                        </div>
-                      </div>
-                    </div>
                   </td>
 
                   {/* GitHub Activity */}

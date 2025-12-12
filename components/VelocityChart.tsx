@@ -19,7 +19,7 @@ interface VelocityChartProps {
 export const VelocityChart: React.FC<VelocityChartProps> = ({ data }) => {
   return (
     <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl h-96">
-      <h3 className="text-lg font-semibold text-slate-100 mb-6">Velocity vs. Merge Volume</h3>
+      <h3 className="text-lg font-semibold text-slate-100 mb-6">Pull Request Activity</h3>
       <div className="h-full w-full pb-6">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
@@ -31,19 +31,10 @@ export const VelocityChart: React.FC<VelocityChartProps> = ({ data }) => {
               axisLine={{ stroke: '#334155' }}
             />
             <YAxis 
-              yAxisId="left" 
-              stroke="#94a3b8" 
+              stroke="#94a3b8"
               tick={{ fill: '#94a3b8', fontSize: 12 }} 
               axisLine={false}
-              label={{ value: 'Story Points', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 12 }}
-            />
-            <YAxis 
-              yAxisId="right" 
-              orientation="right" 
-              stroke="#94a3b8" 
-              tick={{ fill: '#94a3b8', fontSize: 12 }} 
-              axisLine={false}
-              label={{ value: 'PRs Merged', angle: 90, position: 'insideRight', fill: '#94a3b8', fontSize: 12 }}
+              label={{ value: 'Pull Requests', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 12 }}
             />
             <Tooltip 
               contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f1f5f9' }}
@@ -51,16 +42,14 @@ export const VelocityChart: React.FC<VelocityChartProps> = ({ data }) => {
             />
             <Legend wrapperStyle={{ paddingTop: '10px' }} />
             <Bar 
-              yAxisId="left" 
-              dataKey="velocity" 
-              name="Story Points" 
-              fill="#3b82f6" 
+              dataKey="prsOpened"
+              name="PRs Opened"
+              fill="#3b82f6"
               radius={[4, 4, 0, 0]} 
               barSize={32}
             />
             <Line 
-              yAxisId="right" 
-              type="monotone" 
+              type="monotone"
               dataKey="prsMerged" 
               name="PRs Merged" 
               stroke="#10b981" 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { DeveloperMetric } from '../types';
-import { MoreHorizontal, ExternalLink } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 
 interface MembersTableProps {
   data: DeveloperMetric[];
@@ -53,9 +53,6 @@ export const MembersTable: React.FC<MembersTableProps> = ({ data }) => {
                     <span className="font-bold text-slate-100">{dev.impactScore}</span>
                     <div className={`w-2 h-2 rounded-full ml-2 ${dev.impactScore > 80 ? 'bg-emerald-500' : dev.impactScore > 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
                   </div>
-                </td>
-                <td className="px-6 py-4 text-right text-slate-300">
-                  {dev.velocity} pts
                 </td>
                 <td className="px-6 py-4 text-right text-slate-300">
                   {dev.prsMerged}

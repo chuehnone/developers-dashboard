@@ -1,5 +1,5 @@
 {
   "name": "DevPulse - Productivity Dashboard",
-  "description": "A high-performance developer productivity dashboard analyzing GitHub and Jira metrics with real-time visualizations.",
+  "description": "A high-performance developer productivity dashboard analyzing GitHub metrics with real-time visualizations.",
   "requestFramePermissions": []
 }

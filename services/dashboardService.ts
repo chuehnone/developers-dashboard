@@ -246,21 +246,16 @@ export async function fetchDashboardData(
           avatar: `https://github.com/${dev.githubLogin}.png`,
         };
 
-        const combined = {
+        const metric = {
           ...developer,
           ...githubStats,
           recentActivityTrend,
-        };
-
-        const impactScore = calculateImpactScore(combined);
-        const status = determineStatus(combined);
-
-        metrics.push({
-          ...combined,
-          impactScore,
+          impactScore: calculateImpactScore(githubStats),
           impactTrend: 0, // TODO: Calculate based on historical data
-          status,
-        });
+          status: determineStatus(githubStats),
+        } as DeveloperMetric;
+
+        metrics.push(metric);
       }
 
       // Calculate summary from GitHub data only

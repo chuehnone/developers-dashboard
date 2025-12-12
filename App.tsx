@@ -9,7 +9,6 @@ import {
 import { Sidebar } from './components/Sidebar';
 import { MetricCard } from './components/MetricCard';
 import { VelocityChart } from './components/VelocityChart';
-import { WorkDistributionChart } from './components/WorkDistributionChart';
 import { MembersTable } from './components/MembersTable';
 import { MembersPage } from './components/MembersPage';
 import { GithubPage } from './components/GithubPage';
@@ -142,13 +141,8 @@ const App: React.FC = () => {
         </div>
 
         {/* Main Charts Area */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <VelocityChart data={data} />
-          </div>
-          <div className="lg:col-span-1">
-            <WorkDistributionChart data={data} />
-          </div>
+        <div className="grid grid-cols-1 gap-6">
+          <VelocityChart data={data} />
         </div>
 
         {/* Data Table Widget (Overview Only) */}
