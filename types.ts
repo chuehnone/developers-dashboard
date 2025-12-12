@@ -6,14 +6,6 @@ export interface Developer {
   avatar: string;
 }
 
-export interface JiraStats {
-  developerId: string;
-  velocity: number; // Story points completed
-  activeTickets: number;
-  bugsFixed: number;
-  featuresCompleted: number;
-  techDebtTickets: number;
-}
 
 export interface GithubStats {
   developerId: string;
@@ -26,7 +18,7 @@ export interface GithubStats {
 export type DeveloperStatus = 'Shipping' | 'Bug Fixing' | 'Tech Debt' | 'Blocked' | 'On Leave';
 
 // Combined interface for dashboard display
-export interface DeveloperMetric extends Developer, JiraStats, GithubStats {
+export interface DeveloperMetric extends Developer, GithubStats {
   impactScore: number; // Calculated field
   impactTrend: number; // Percentage change
   status: DeveloperStatus;
@@ -36,7 +28,6 @@ export interface DeveloperMetric extends Developer, JiraStats, GithubStats {
 export type TimeRange = 'sprint' | 'month' | 'quarter';
 
 export interface DashboardSummary {
-  totalPoints: number;
   totalPrsMerged: number;
   avgCycleTime: number;
   velocityTrend: number; // Percentage
@@ -81,40 +72,3 @@ export interface GithubAnalyticsData {
   stalePRs: PullRequest[];
 }
 
-// Jira Analytics Specific Types
-
-export type JiraIssueType = 'Story' | 'Bug' | 'Task' | 'Tech Debt' | 'Support';
-
-export interface SprintMetric {
-  id: string;
-  name: string;
-  committedPoints: number;
-  completedPoints: number;
-  scopeChangePoints: number; // Points added after start
-  sayDoRatio: number; // Percentage
-}
-
-export interface JiraTicket {
-  id: string;
-  key: string;
-  title: string;
-  assignee: string;
-  assigneeAvatar: string;
-  type: JiraIssueType;
-  status: 'To Do' | 'In Progress' | 'Review' | 'Done';
-  points: number;
-  daysInStatus: number;
-  flagged: boolean;
-}
-
-export interface JiraAnalyticsData {
-  summary: {
-    avgVelocity: number;
-    sayDoRatio: number;
-    scopeCreep: number;
-    bugRate: number;
-  };
-  sprintHistory: SprintMetric[];
-  activeTickets: JiraTicket[];
-  investmentProfile: { name: string; value: number; color: string }[];
-}

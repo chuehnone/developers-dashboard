@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  Zap,
   GitMerge,
   Clock,
   Calendar,
@@ -14,16 +13,14 @@ import { WorkDistributionChart } from './components/WorkDistributionChart';
 import { MembersTable } from './components/MembersTable';
 import { MembersPage } from './components/MembersPage';
 import { GithubPage } from './components/GithubPage';
-import { JiraPage } from './components/JiraPage';
-import { fetchDashboardData, fetchGithubAnalytics, fetchJiraAnalytics } from './services/dashboardService';
-import { DeveloperMetric, DashboardSummary, TimeRange, GithubAnalyticsData, JiraAnalyticsData } from './types';
+import { fetchDashboardData, fetchGithubAnalytics } from './services/dashboardService';
+import { DeveloperMetric, DashboardSummary, TimeRange, GithubAnalyticsData } from './types';
 import { isConfigValid } from './services/config';
 
 const App: React.FC = () => {
   const [data, setData] = useState<DeveloperMetric[]>([]);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [githubData, setGithubData] = useState<GithubAnalyticsData | null>(null);
-  const [jiraData, setJiraData] = useState<JiraAnalyticsData | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [timeRange, setTimeRange] = useState<TimeRange>('sprint');
@@ -53,8 +50,6 @@ const App: React.FC = () => {
         const ghResult = await fetchGithubAnalytics();
         setGithubData(ghResult);
 
-        const jiraResult = await fetchJiraAnalytics();
-        setJiraData(jiraResult);
 
       } catch (error) {
         console.error("Failed to load dashboard data", error);
@@ -97,7 +92,7 @@ const App: React.FC = () => {
                 </p>
                 <ol className="text-sm text-slate-400 space-y-1 list-decimal list-inside">
                   <li>Copy <code className="px-1 bg-slate-900 rounded">.env.local.example</code> to <code className="px-1 bg-slate-900 rounded">.env.local</code></li>
-                  <li>Fill in your GitHub and Jira credentials</li>
+                  <li>Fill in your GitHub credentials</li>
                   <li>Restart the development server</li>
                 </ol>
               </div>
@@ -125,22 +120,13 @@ const App: React.FC = () => {
       return <GithubPage data={githubData} />;
     }
 
-    if (currentView === 'jira' && jiraData) {
-      return <JiraPage data={jiraData} />;
-    }
 
     // Default Overview Dashboard
     return (
       <>
         {/* Top Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <MetricCard 
-            title="Total Story Points" 
-            value={summary.totalPoints} 
-            trend={summary.velocityTrend} 
-            icon={Zap} 
-          />
-          <MetricCard 
+          <MetricCard
             title="Merge Frequency" 
             value={summary.totalPrsMerged} 
             trend={summary.prTrend} 
@@ -175,7 +161,6 @@ const App: React.FC = () => {
     switch(currentView) {
       case 'members': return 'Team Members';
       case 'github': return 'GitHub Analytics';
-      case 'jira': return 'Jira Activity';
       default: return 'Engineering Overview';
     }
   }
@@ -184,8 +169,7 @@ const App: React.FC = () => {
     switch(currentView) {
       case 'members': return 'Detailed performance breakdown per developer';
       case 'github': return 'Codebase health, cycle time, and review bottlenecks';
-      case 'jira': return 'Sprint health, planning accuracy, and work allocation';
-      default: return 'Track key metrics across GitHub and Jira';
+      default: return 'Track key metrics across GitHub';
     }
   }
 

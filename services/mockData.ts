@@ -1,5 +1,5 @@
 
-import { Developer, JiraStats, GithubStats, DeveloperMetric, DashboardSummary, TimeRange, DeveloperStatus, GithubAnalyticsData, PullRequest, CycleTimeDaily, JiraAnalyticsData, SprintMetric, JiraTicket, JiraIssueType } from '../types';
+import { Developer, GithubStats, DeveloperMetric, DashboardSummary, TimeRange, DeveloperStatus, GithubAnalyticsData, PullRequest, CycleTimeDaily } from '../types';
 
 const DEVELOPERS: Developer[] = [
   { id: 'dev_1', name: 'Alice Chen', role: 'Fullstack', avatar: 'https://picsum.photos/seed/alice/64/64' },
@@ -24,16 +24,6 @@ export const fetchDashboardData = async (range: TimeRange): Promise<{ metrics: D
   const multiplier = range === 'sprint' ? 1 : range === 'month' ? 2.5 : 6;
 
   const metrics: DeveloperMetric[] = DEVELOPERS.map(dev => {
-    // Generate randomized Jira Stats
-    const jira: JiraStats = {
-      developerId: dev.id,
-      velocity: getRandomInt(15, 40) * multiplier,
-      activeTickets: getRandomInt(1, 8),
-      bugsFixed: getRandomInt(0, 5) * multiplier,
-      featuresCompleted: getRandomInt(1, 4) * multiplier,
-      techDebtTickets: getRandomInt(0, 3) * multiplier,
-    };
-
     // Generate randomized GitHub Stats
     const github: GithubStats = {
       developerId: dev.id,
@@ -43,13 +33,12 @@ export const fetchDashboardData = async (range: TimeRange): Promise<{ metrics: D
       reviewCommentsGiven: getRandomInt(5, 50) * multiplier,
     };
 
-    // Calculate Impact Score (Arbitrary formula for demo)
-    const rawScore = (jira.velocity * 1.5) + (github.prsMerged * 5) + (github.reviewCommentsGiven * 0.5);
+    // Calculate Impact Score based on GitHub activity
+    const rawScore = (github.prsMerged * 5) + (github.reviewCommentsGiven * 0.5);
     const impactScore = Math.min(100, Math.round(rawScore / (multiplier * 0.8))); // Normalize slightly
 
     return {
       ...dev,
-      ...jira,
       ...github,
       impactScore,
       impactTrend: getRandomInt(-10, 15),
@@ -59,12 +48,10 @@ export const fetchDashboardData = async (range: TimeRange): Promise<{ metrics: D
   });
 
   // Calculate Aggregates
-  const totalPoints = metrics.reduce((acc, curr) => acc + curr.velocity, 0);
   const totalPrsMerged = metrics.reduce((acc, curr) => acc + curr.prsMerged, 0);
   const avgCycleTime = Math.round(metrics.reduce((acc, curr) => acc + curr.avgCycleTimeHours, 0) / metrics.length);
 
   const summary: DashboardSummary = {
-    totalPoints,
     totalPrsMerged,
     avgCycleTime,
     velocityTrend: getRandomInt(-10, 20),
@@ -169,94 +156,3 @@ export const fetchGithubAnalytics = async (): Promise<GithubAnalyticsData> => {
   };
 };
 
-// Generate Jira Analytics Data
-export const fetchJiraAnalytics = async (): Promise<JiraAnalyticsData> => {
-  await new Promise(resolve => setTimeout(resolve, 700));
-
-  // 1. Generate Sprint History (Last 5 sprints)
-  const sprints: SprintMetric[] = [];
-  const SPRINT_NAMES = ['Sprint 20', 'Sprint 21', 'Sprint 22', 'Sprint 23', 'Sprint 24 (Active)'];
-  
-  SPRINT_NAMES.forEach((name, index) => {
-    const isCurrent = index === SPRINT_NAMES.length - 1;
-    const committed = getRandomInt(100, 140);
-    // If current, completed is lower. If past, it varies around committed.
-    const completed = isCurrent ? Math.floor(committed * 0.4) : getRandomInt(Math.floor(committed * 0.8), Math.floor(committed * 1.1)); 
-    const scopeChange = getRandomInt(0, 15);
-    
-    // Calculate ratio based on final totals (completed vs committed + scope)
-    const sayDoRatio = isCurrent ? 0 : Math.round((completed / committed) * 100);
-
-    sprints.push({
-      id: `sp-${index}`,
-      name,
-      committedPoints: committed,
-      completedPoints: completed,
-      scopeChangePoints: scopeChange,
-      sayDoRatio
-    });
-  });
-
-  // 2. Generate Active Tickets & Stuck Tickets
-  const activeTickets: JiraTicket[] = [];
-  const TICKET_TYPES: JiraIssueType[] = ['Story', 'Story', 'Story', 'Bug', 'Bug', 'Task', 'Tech Debt'];
-  const TICKET_TITLES = [
-    "API Latency Optimization",
-    "User Profile Redesign",
-    "Fix Crash on Android 12",
-    "Migrate to Next.js 14",
-    "Update Stripe Webhooks",
-    "Design System implementation",
-    "Resolve Memory Leak",
-    "Add 2FA Authentication"
-  ];
-
-  // Generate random tickets
-  for (let i = 0; i < 20; i++) {
-    const type = TICKET_TYPES[getRandomInt(0, TICKET_TYPES.length - 1)];
-    const dev = DEVELOPERS[getRandomInt(0, DEVELOPERS.length - 1)];
-    const statusVal = getRandomInt(0, 3);
-    const status: JiraTicket['status'] = statusVal === 0 ? 'To Do' : statusVal === 1 ? 'In Progress' : statusVal === 2 ? 'Review' : 'Done';
-    
-    // Make some tickets "stuck" if In Progress
-    const daysInStatus = status === 'In Progress' ? getRandomInt(1, 10) : getRandomInt(0, 3);
-    
-    activeTickets.push({
-      id: `ticket-${i}`,
-      key: `DEV-${2040 + i}`,
-      title: TICKET_TITLES[getRandomInt(0, TICKET_TITLES.length - 1)],
-      assignee: dev.name,
-      assigneeAvatar: dev.avatar,
-      type,
-      status,
-      points: getRandomInt(1, 8),
-      daysInStatus,
-      flagged: daysInStatus > 6
-    });
-  }
-
-  // 3. Investment Profile Data (Aggregated from mock tickets + bias)
-  const investmentProfile = [
-    { name: 'Features', value: 55, color: '#3b82f6' }, // Blue
-    { name: 'Bugs', value: 20, color: '#ef4444' }, // Red
-    { name: 'Tech Debt', value: 15, color: '#64748b' }, // Slate
-    { name: 'Support', value: 10, color: '#f59e0b' }, // Amber
-  ];
-
-  // 4. Calculate Summary KPIs based on past sprints (excluding current)
-  const pastSprints = sprints.slice(0, 4);
-  const avgVelocity = Math.round(pastSprints.reduce((acc, s) => acc + s.completedPoints, 0) / 4);
-  const avgSayDo = Math.round(pastSprints.reduce((acc, s) => acc + s.sayDoRatio, 0) / 4);
-  
-  return {
-    summary: {
-      avgVelocity,
-      sayDoRatio: avgSayDo,
-      scopeCreep: Math.round(pastSprints.reduce((acc, s) => acc + s.scopeChangePoints, 0) / 4),
-      bugRate: 20 // Mocked %
-    },
-    sprintHistory: sprints,
-    activeTickets: activeTickets.sort((a, b) => b.daysInStatus - a.daysInStatus), // Sort by stuck time
-    investmentProfile
-  };
-};

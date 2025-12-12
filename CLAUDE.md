@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-A comprehensive engineering dashboard for tracking developer metrics, GitHub analytics, and Jira activity. Built with React, TypeScript, and Vite, this dashboard provides real-time insights into team performance, code review cycles, and sprint health.
+A comprehensive engineering dashboard for tracking developer metrics and GitHub analytics. Built with React, TypeScript, and Vite, this dashboard provides real-time insights into team performance and code review cycles.
 
 **Live App**: https://ai.studio/apps/drive/15OoJp-sjX62kbFoL8v2AUBoY2CzFqy7N
 
@@ -22,16 +22,12 @@ developers-dashboard/
 ├── components/           # React components
 │   ├── CycleTimeChart.tsx       # GitHub cycle time visualization
 │   ├── GithubPage.tsx           # GitHub analytics view
-│   ├── InvestmentProfile.tsx    # Jira work type breakdown
-│   ├── JiraPage.tsx             # Jira analytics view
-│   ├── JiraVelocityChart.tsx    # Sprint velocity trends
 │   ├── MembersPage.tsx          # Team member detail view
 │   ├── MembersTable.tsx         # Developer metrics table
 │   ├── MetricCard.tsx           # Reusable metric display card
 │   ├── PRScatterPlot.tsx        # PR size vs time scatter plot
 │   ├── Sidebar.tsx              # Navigation sidebar
 │   ├── StalePRsList.tsx         # Unmerged PR alerts
-│   ├── StuckTicketsList.tsx     # Blocked Jira tickets
 │   ├── VelocityChart.tsx        # Story points velocity chart
 │   └── WorkDistributionChart.tsx # Team workload distribution
 │
@@ -41,11 +37,6 @@ developers-dashboard/
 │   │   │   ├── client.ts        # GitHub GraphQL client
 │   │   │   ├── queries.ts       # GraphQL query definitions
 │   │   │   ├── types.ts         # GitHub API response types
-│   │   │   └── transforms.ts    # API response → App types
-│   │   ├── jira/
-│   │   │   ├── client.ts        # Jira REST client
-│   │   │   ├── endpoints.ts     # JQL query builders
-│   │   │   ├── types.ts         # Jira API response types
 │   │   │   └── transforms.ts    # API response → App types
 │   │   └── cache.ts             # localStorage cache layer
 │   ├── config.ts                # Environment variable validation
@@ -68,9 +59,8 @@ developers-dashboard/
 ## Core Data Models
 
 ### Developer Metrics (`DeveloperMetric`)
-Combines GitHub and Jira stats for each team member:
+Combines GitHub stats for each team member:
 - **Developer Info**: id, name, role, avatar
-- **Jira Stats**: velocity, activeTickets, bugsFixed, featuresCompleted, techDebtTickets
 - **GitHub Stats**: prsOpened, prsMerged, avgCycleTimeHours, reviewCommentsGiven
 - **Calculated Fields**: impactScore, impactTrend, status, recentActivityTrend
 
@@ -80,25 +70,18 @@ Combines GitHub and Jira stats for each team member:
 - **PR Scatter Data**: Size vs time correlations
 - **Stale PRs**: Unmerged pull requests needing attention
 
-### Jira Analytics (`JiraAnalyticsData`)
-- **Summary Metrics**: avgVelocity, sayDoRatio, scopeCreep, bugRate
-- **Sprint History**: Historical sprint performance
-- **Active Tickets**: Current work in progress
-- **Investment Profile**: Work type distribution (features/bugs/tech debt)
-
 ## Application Architecture
 
 ### State Management
 - **Local State**: React hooks (useState, useEffect)
 - **Time Range**: Controls data filtering ('sprint' | 'month' | 'quarter')
-- **Current View**: Navigation state ('overview' | 'members' | 'github' | 'jira')
+- **Current View**: Navigation state ('overview' | 'members' | 'github')
 - **Loading States**: Async data fetching feedback
 
 ### Navigation Views
 1. **Overview** - High-level metrics, velocity charts, team table
 2. **Members** - Detailed per-developer breakdown
 3. **GitHub** - Code review cycle times, stale PRs, merge analytics
-4. **Jira** - Sprint velocity, stuck tickets, work type distribution
 
 ### Data Flow
 ```
@@ -106,10 +89,8 @@ App.tsx (useEffect)
     ↓
 services/dashboardService.ts (Orchestrator)
     ↓
-├── services/api/github/client.ts → GitHub GraphQL API
-│   └── transforms.ts → DeveloperMetric, GithubStats
-└── services/api/jira/client.ts → Jira REST API
-    └── transforms.ts → JiraStats, SprintMetric
+services/api/github/client.ts → GitHub GraphQL API
+    └── transforms.ts → DeveloperMetric, GithubStats
     ↓
 State Updates (setData, setSummary, etc.)
     ↓
@@ -128,18 +109,15 @@ Child Components (props)
   - Icon support via Lucide React
 
 ### Charts & Visualizations
-- **VelocityChart**: Line chart for story points over time
+- **VelocityChart**: Line chart for PR merge frequency over time
 - **CycleTimeChart**: Stacked area chart for PR lifecycle phases
-- **JiraVelocityChart**: Sprint capacity vs completion
 - **WorkDistributionChart**: Pie/donut chart for team workload
 - **PRScatterPlot**: Bubble chart for PR size vs merge time
-- **InvestmentProfile**: Bar chart for work type allocation
 
 ### Data Tables
 - **MembersTable**: Sortable table with developer metrics
 - **MembersPage**: Expanded view with detailed stats per developer
 - **StalePRsList**: Alert widget for PRs needing review
-- **StuckTicketsList**: Alert widget for blocked Jira tickets
 
 ## Styling Approach
 
@@ -167,13 +145,6 @@ VITE_GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 VITE_GITHUB_ORG=your-organization-name
 VITE_GITHUB_API_URL=https://api.github.com/graphql
 
-# Jira Configuration
-VITE_JIRA_DOMAIN=your-company.atlassian.net
-VITE_JIRA_EMAIL=your-email@company.com
-VITE_JIRA_API_TOKEN=ATATTxxxxxxxxxxxxxxxxxx
-VITE_JIRA_PROJECT_KEY=DEV
-VITE_JIRA_BOARD_ID=123
-
 # Optional Feature Flags
 VITE_CACHE_TTL_MINUTES=15
 VITE_FALLBACK_TO_MOCK=false
@@ -183,7 +154,7 @@ See `.env.local.example` for a complete template.
 
 ## Data Source
 
-The dashboard integrates with **GitHub GraphQL API** and **Jira REST API** for real-time data.
+The dashboard integrates with **GitHub GraphQL API** for real-time data.
 
 ### API Integration Architecture
 
@@ -193,16 +164,9 @@ The dashboard integrates with **GitHub GraphQL API** and **Jira REST API** for r
 - Calculates cycle time metrics (coding time, pickup time, review time)
 - Maps GitHub users to developer metrics via username/email mapping
 
-**Jira Integration:**
-- Uses REST API with Agile endpoints for sprint data
-- Fetches tickets via JQL queries filtered by assignee and project
-- Calculates velocity, story points, and investment profile
-- Tracks sprint metrics (say-do ratio, scope creep, completion rates)
-
 **Data Transformation:**
 - `services/api/github/transforms.ts` - Maps GitHub API responses to app types
-- `services/api/jira/transforms.ts` - Maps Jira API responses to app types
-- `services/dashboardService.ts` - Orchestrates and merges data from both sources
+- `services/dashboardService.ts` - Orchestrates and transforms data from GitHub API
 
 **Caching:**
 - localStorage-based cache with configurable TTL (default 15 minutes)
@@ -225,7 +189,7 @@ See `docs/0001-migrate-mock-to-real-api-integration.md` for complete implementat
 
 ## Future Enhancements
 
-- [x] Real API integration (GitHub GraphQL, Jira REST)
+- [x] Real API integration (GitHub GraphQL)
 - [ ] Backend proxy server for secure token management
 - [ ] User authentication and role-based access
 - [ ] Configurable metrics and thresholds

@@ -1,5 +1,4 @@
 import { githubClient } from './api/github/client';
-import { jiraClient } from './api/jira/client';
 import {
   GET_ORGANIZATION_PULL_REQUESTS,
   GET_ORGANIZATION_MEMBERS,
@@ -10,28 +9,17 @@ import {
   buildGithubAnalyticsData,
   getRecentActivityTrend,
 } from './api/github/transforms';
-import {
-  buildActiveTicketsQuery,
-  buildCompletedTicketsQuery,
-  STANDARD_FIELDS,
-} from './api/jira/endpoints';
-import {
-  mapJiraIssuesToStats,
-  buildJiraAnalyticsData,
-} from './api/jira/transforms';
 import { getConfig } from './config';
 import { cache } from './api/cache';
 import {
   fetchDashboardData as fetchMockDashboardData,
   fetchGithubAnalytics as fetchMockGithubAnalytics,
-  fetchJiraAnalytics as fetchMockJiraAnalytics,
 } from './mockData';
 import {
   DeveloperMetric,
   DashboardSummary,
   TimeRange,
   GithubAnalyticsData,
-  JiraAnalyticsData,
   DeveloperStatus,
   Developer,
 } from '../types';
@@ -39,22 +27,19 @@ import type {
   OrgPullRequestsResponse,
   OrgMembersResponse,
 } from './api/github/types';
-import type { JiraSearchResponse } from './api/jira/types';
 
 interface DeveloperMapping {
   githubLogin: string;
-  jiraEmail: string;
   name: string;
   role: 'Frontend' | 'Backend' | 'Fullstack' | 'DevOps';
 }
 
 // Default developer mapping - can be overridden by external config
-// Add your team members here with their GitHub login and Jira email
+// Add your team members here with their GitHub login
 const DEFAULT_DEVELOPER_MAP: DeveloperMapping[] = [
   // Add more team members below:
   // {
   //   githubLogin: 'github-username',
-  //   jiraEmail: 'email@myfunnow.com',
   //   name: 'Developer Name',
   //   role: 'Frontend', // or 'Backend', 'Fullstack', 'DevOps'
   // },
@@ -140,30 +125,23 @@ function getTimeRangeDays(range: TimeRange): number {
 function calculateImpactScore(metric: Partial<DeveloperMetric>): number {
   const multiplier = 1.0;
 
-  const velocityScore = (metric.velocity || 0) * 1.5 * multiplier;
   const prScore = (metric.prsMerged || 0) * 5 * multiplier;
   const reviewScore = (metric.reviewCommentsGiven || 0) * 0.5 * multiplier;
-  const bugFixScore = (metric.bugsFixed || 0) * 3 * multiplier;
 
-  const total = velocityScore + prScore + reviewScore + bugFixScore;
+  const total = prScore + reviewScore;
   return Math.min(100, Math.round(total));
 }
 
 function determineStatus(metric: Partial<DeveloperMetric>): DeveloperStatus {
-  if (metric.activeTickets === 0) {
+  // Simple status based on PR activity
+  const prsMerged = metric.prsMerged || 0;
+
+  if (prsMerged === 0) {
     return 'On Leave';
   }
 
-  if ((metric.bugsFixed || 0) > (metric.featuresCompleted || 0)) {
-    return 'Bug Fixing';
-  }
-
-  if ((metric.techDebtTickets || 0) > 0) {
-    return 'Tech Debt';
-  }
-
-  if ((metric.activeTickets || 0) > 5) {
-    return 'Blocked';
+  if (prsMerged >= 5) {
+    return 'Shipping';
   }
 
   return 'Shipping';
@@ -200,125 +178,103 @@ export async function fetchDashboardData(
         return updatedAt >= since;
       });
 
-    // Fetch GitHub members
-    const membersData = await githubClient.query<OrgMembersResponse>(
-      GET_ORGANIZATION_MEMBERS,
-      {
-        org: config.github.org,
-        first: 100,
-      }
-    );
-
-    // Fetch Jira data
-    const jiraQuery = buildActiveTicketsQuery();
-    const jiraActiveData = await jiraClient.searchIssues(jiraQuery, STANDARD_FIELDS, 200);
-
-    const jiraCompletedQuery = buildCompletedTicketsQuery(undefined, days);
-    const jiraCompletedData = await jiraClient.searchIssues(
-      jiraCompletedQuery,
-      STANDARD_FIELDS,
-      200
-    );
-
-    const allJiraIssues = [
-      ...jiraActiveData.issues,
-      ...jiraCompletedData.issues,
-    ] as any[];
-
-    // Create developer metrics by merging GitHub and Jira data
-    // Use GitHub org members if available, otherwise fall back to manual mapping
-    const githubMembers = membersData.organization.membersWithRole.nodes || [];
-    const githubTeams = membersData.organization.teams?.nodes || [];
-
-    console.log(`Found ${githubMembers.length} GitHub org members`);
-    console.log(`Found ${githubTeams.length} GitHub teams`);
-
-    // Create a map of user login to their teams
-    const userTeamsMap = new Map<string, string[]>();
-    for (const team of githubTeams) {
-      for (const member of team.members.nodes) {
-        if (!userTeamsMap.has(member.login)) {
-          userTeamsMap.set(member.login, []);
+      // Fetch GitHub members
+      const membersData = await githubClient.query<OrgMembersResponse>(
+        GET_ORGANIZATION_MEMBERS,
+        {
+          org: config.github.org,
+          first: 100,
         }
-        userTeamsMap.get(member.login)!.push(team.name);
+      );
+
+      // Create developer metrics from GitHub data only
+      // Use GitHub org members if available, otherwise fall back to manual mapping
+      const githubMembers = membersData.organization.membersWithRole.nodes || [];
+      const githubTeams = membersData.organization.teams?.nodes || [];
+
+      console.log(`Found ${githubMembers.length} GitHub org members`);
+      console.log(`Found ${githubTeams.length} GitHub teams`);
+
+      // Create a map of user login to their teams
+      const userTeamsMap = new Map<string, string[]>();
+      for (const team of githubTeams) {
+        for (const member of team.members.nodes) {
+          if (!userTeamsMap.has(member.login)) {
+            userTeamsMap.set(member.login, []);
+          }
+          userTeamsMap.get(member.login)!.push(team.name);
+        }
       }
-    }
 
-    const developerMap = githubMembers.length > 0
-      ? githubMembers.map(member => {
-          const userTeams = userTeamsMap.get(member.login) || [];
-          // Use first team name as role, or default to 'Fullstack'
-          const role = userTeams.length > 0 ? userTeams[0] : 'Fullstack';
+      const developerMap = githubMembers.length > 0
+        ? githubMembers.map(member => {
+            const userTeams = userTeamsMap.get(member.login) || [];
+            // Use first team name as role, or default to 'Fullstack'
+            const role = userTeams.length > 0 ? userTeams[0] : 'Fullstack';
 
-          return {
-            githubLogin: member.login,
-            jiraEmail: member.email || `${member.login}@${config.jira.domain.split('.')[0]}.com`,
-            name: member.name || member.login,
-            role: role as any, // Allow any team name as role
-          };
-        })
-      : DEFAULT_DEVELOPER_MAP;
+            return {
+              githubLogin: member.login,
+              name: member.name || member.login,
+              role: role as any, // Allow any team name as role
+            };
+          })
+        : DEFAULT_DEVELOPER_MAP;
 
-    console.log(`Processing metrics for ${developerMap.length} developers`);
+      console.log(`Processing metrics for ${developerMap.length} developers`);
 
-    // Log team assignments for debugging
-    developerMap.forEach(dev => {
-      const teams = userTeamsMap.get(dev.githubLogin) || [];
-      if (teams.length > 0) {
-        console.log(`${dev.name} (${dev.githubLogin}): ${dev.role} - All Teams: ${teams.join(', ')}`);
-      }
-    });
-    const metrics: DeveloperMetric[] = [];
-
-    for (const dev of developerMap) {
-      // Get GitHub stats
-      const githubStats = aggregateUserPullRequests(allPRs, dev.githubLogin);
-
-      // Get Jira stats
-      const jiraStats = mapJiraIssuesToStats(allJiraIssues, dev.jiraEmail);
-
-      // Get activity trend
-      const recentActivityTrend = getRecentActivityTrend(allPRs, dev.githubLogin, 7);
-
-      const developer: Developer = {
-        id: dev.githubLogin,
-        name: dev.name,
-        role: dev.role,
-        avatar: `https://github.com/${dev.githubLogin}.png`,
-      };
-
-      const combined = {
-        ...developer,
-        ...githubStats,
-        ...jiraStats,
-        recentActivityTrend,
-      };
-
-      const impactScore = calculateImpactScore(combined);
-      const status = determineStatus(combined);
-
-      metrics.push({
-        ...combined,
-        impactScore,
-        impactTrend: 0, // TODO: Calculate based on historical data
-        status,
+      // Log team assignments for debugging
+      developerMap.forEach(dev => {
+        const teams = userTeamsMap.get(dev.githubLogin) || [];
+        if (teams.length > 0) {
+          console.log(`${dev.name} (${dev.githubLogin}): ${dev.role} - All Teams: ${teams.join(', ')}`);
+        }
       });
-    }
 
-    // Calculate summary
-    const totalPoints = metrics.reduce((sum, m) => sum + m.velocity, 0);
-    const totalPrsMerged = metrics.reduce((sum, m) => sum + m.prsMerged, 0);
-    const avgCycleTime =
-      metrics.reduce((sum, m) => sum + m.avgCycleTimeHours, 0) / metrics.length || 0;
+      const metrics: DeveloperMetric[] = [];
 
-    const summary: DashboardSummary = {
-      totalPoints,
-      totalPrsMerged,
-      avgCycleTime: Math.round(avgCycleTime * 10) / 10,
-      velocityTrend: 0, // TODO: Calculate trend
-      prTrend: 0, // TODO: Calculate trend
-      cycleTimeTrend: 0, // TODO: Calculate trend
-    };
+      for (const dev of developerMap) {
+        // Get GitHub stats
+        const githubStats = aggregateUserPullRequests(allPRs, dev.githubLogin);
+
+        // Get activity trend
+        const recentActivityTrend = getRecentActivityTrend(allPRs, dev.githubLogin, 7);
+
+        const developer: Developer = {
+          id: dev.githubLogin,
+          name: dev.name,
+          role: dev.role,
+          avatar: `https://github.com/${dev.githubLogin}.png`,
+        };
+
+        const combined = {
+          ...developer,
+          ...githubStats,
+          recentActivityTrend,
+        };
+
+        const impactScore = calculateImpactScore(combined);
+        const status = determineStatus(combined);
+
+        metrics.push({
+          ...combined,
+          impactScore,
+          impactTrend: 0, // TODO: Calculate based on historical data
+          status,
+        });
+      }
+
+      // Calculate summary from GitHub data only
+      const totalPrsMerged = metrics.reduce((sum, m) => sum + m.prsMerged, 0);
+      const avgCycleTime =
+        metrics.reduce((sum, m) => sum + m.avgCycleTimeHours, 0) / metrics.length || 0;
+
+      const summary: DashboardSummary = {
+        totalPrsMerged,
+        avgCycleTime: Math.round(avgCycleTime * 10) / 10,
+        velocityTrend: 0, // TODO: Calculate trend
+        prTrend: 0, // TODO: Calculate trend
+        cycleTimeTrend: 0, // TODO: Calculate trend
+      };
 
       return { metrics, summary };
     },
@@ -357,62 +313,3 @@ export async function fetchGithubAnalytics(): Promise<GithubAnalyticsData> {
   );
 }
 
-export async function fetchJiraAnalytics(): Promise<JiraAnalyticsData> {
-  const cacheKey = 'dashboard_jira_v2'; // v2 to invalidate old cache
-
-  return safeFetchWithCache(
-    cacheKey,
-    async () => {
-      const config = getConfig();
-
-      try {
-        // Try to fetch recent sprints using Agile API
-        const sprintsResponse = await jiraClient.getSprints(config.jira.boardId, 'closed');
-        const sprints = sprintsResponse.values.slice(0, 10); // Last 10 sprints
-
-        // Fetch issues for each sprint
-        const sprintIssuesMap = new Map();
-        for (const sprint of sprints as any[]) {
-          try {
-            const issuesResponse = await jiraClient.getSprintIssues(sprint.id, 200);
-            sprintIssuesMap.set(sprint.id, issuesResponse.issues);
-          } catch (error) {
-            console.warn(`Failed to fetch issues for sprint ${sprint.id}:`, error);
-            sprintIssuesMap.set(sprint.id, []);
-          }
-        }
-
-        // Fetch active tickets
-        const activeQuery = buildActiveTicketsQuery();
-        const activeTicketsResponse = await jiraClient.searchIssues(
-          activeQuery,
-          STANDARD_FIELDS,
-          200
-        );
-
-        return buildJiraAnalyticsData(
-          sprints as any[],
-          sprintIssuesMap,
-          activeTicketsResponse.issues as any[]
-        );
-      } catch (error) {
-        console.error('Agile API failed, falling back to basic search:', error);
-
-        // Fallback: Use basic search without sprint data
-        const activeQuery = buildActiveTicketsQuery();
-        const activeTicketsResponse = await jiraClient.searchIssues(
-          activeQuery,
-          STANDARD_FIELDS,
-          200
-        );
-
-        return buildJiraAnalyticsData(
-          [],
-          new Map(),
-          activeTicketsResponse.issues as any[]
-        );
-      }
-    },
-    fetchMockJiraAnalytics
-  );
-}

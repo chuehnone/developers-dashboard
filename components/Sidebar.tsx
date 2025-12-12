@@ -5,7 +5,6 @@ import {
   Users, 
   Settings, 
   GitPullRequest, 
-  CheckSquare,
   BarChart3
 } from 'lucide-react';
 
@@ -42,12 +41,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
           label="GitHub Metrics" 
           active={currentView === 'github'}
           onClick={() => onNavigate('github')} 
-        />
-        <NavItem 
-          icon={<CheckSquare size={20} />} 
-          label="Jira Activity" 
-          active={currentView === 'jira'}
-          onClick={() => onNavigate('jira')} 
         />
       </nav>
 
