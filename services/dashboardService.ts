@@ -187,7 +187,7 @@ export async function fetchDashboardData(
         GET_ORGANIZATION_PULL_REQUESTS,
         {
           org: config.github.org,
-          first: 100,
+          first: 50,
         }
       );
 
@@ -297,7 +297,7 @@ export async function fetchGithubAnalytics(): Promise<GithubAnalyticsData> {
         GET_ORGANIZATION_PULL_REQUESTS,
         {
           org: config.github.org,
-          first: 100,
+          first: 50,
         }
       );
 

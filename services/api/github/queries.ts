@@ -1,7 +1,7 @@
 export const GET_ORGANIZATION_PULL_REQUESTS = `
-  query GetOrgPullRequests($org: String!, $first: Int = 100) {
+  query GetOrgPullRequests($org: String!, $first: Int = 30) {
     organization(login: $org) {
-      repositories(first: 100, orderBy: {field: UPDATED_AT, direction: DESC}) {
+      repositories(first: 15, orderBy: {field: UPDATED_AT, direction: DESC}) {
         nodes {
           name
           pullRequests(first: $first, orderBy: {field: UPDATED_AT, direction: DESC}, states: [OPEN, MERGED, CLOSED]) {
@@ -18,33 +18,13 @@ export const GET_ORGANIZATION_PULL_REQUESTS = `
               author {
                 login
               }
-              reviews(first: 10) {
+              reviews(first: 5) {
                 nodes {
                   author {
                     login
                   }
                   createdAt
                   state
-                }
-              }
-              comments {
-                totalCount
-              }
-              timelineItems(first: 100, itemTypes: [READY_FOR_REVIEW_EVENT, REVIEW_REQUESTED_EVENT, PULL_REQUEST_REVIEW]) {
-                nodes {
-                  __typename
-                  ... on ReadyForReviewEvent {
-                    createdAt
-                  }
-                  ... on ReviewRequestedEvent {
-                    createdAt
-                  }
-                  ... on PullRequestReview {
-                    createdAt
-                    author {
-                      login
-                    }
-                  }
                 }
               }
               commits(first: 1) {
