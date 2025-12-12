@@ -12,6 +12,7 @@ export interface JQLQueryOptions {
 
 export class JQLBuilder {
   private conditions: string[] = [];
+  private orderByClause: string = '';
 
   project(key: string): this {
     this.conditions.push(`project = "${key}"`);
@@ -53,12 +54,13 @@ export class JQLBuilder {
   }
 
   orderBy(field: string, direction: 'ASC' | 'DESC' = 'DESC'): this {
-    this.conditions.push(`ORDER BY ${field} ${direction}`);
+    this.orderByClause = `ORDER BY ${field} ${direction}`;
     return this;
   }
 
   build(): string {
-    return this.conditions.join(' AND ');
+    const query = this.conditions.join(' AND ');
+    return this.orderByClause ? `${query} ${this.orderByClause}` : query;
   }
 }
 
