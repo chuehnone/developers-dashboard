@@ -17,24 +17,39 @@ export class JiraClient {
   }
 
   private getBaseUrl(): string {
+    // Use proxy in development to avoid CORS issues
+    if (import.meta.env.DEV) {
+      return '/api/jira';
+    }
     return `https://${this.domain}`;
   }
 
   async get<T>(endpoint: string): Promise<T> {
     const url = `${this.getBaseUrl()}${endpoint}`;
 
+    console.log(`[Jira API] GET ${url}`);
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': this.authHeader,
+        'Accept': 'application/json',
       },
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorDetail = '';
+      try {
+        const errorJson = await response.json();
+        errorDetail = JSON.stringify(errorJson, null, 2);
+      } catch {
+        errorDetail = await response.text();
+      }
+
+      console.error(`[Jira API] Error Response:`, errorDetail);
       throw new Error(
-        `Jira API error: ${response.status} ${response.statusText} - ${errorText}`
+        `Jira API error: ${response.status} ${response.statusText}\nURL: ${url}\nDetails: ${errorDetail}`
       );
     }
 
@@ -71,8 +86,12 @@ export class JiraClient {
     const params = new URLSearchParams({
       jql,
       maxResults: maxResults.toString(),
-      fields: fields.join(','),
     });
+
+    // Only add fields if provided
+    if (fields.length > 0) {
+      params.append('fields', fields.join(','));
+    }
 
     return this.get(`${endpoint}?${params.toString()}`);
   }

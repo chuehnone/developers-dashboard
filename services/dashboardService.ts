@@ -322,30 +322,53 @@ export async function fetchJiraAnalytics(): Promise<JiraAnalyticsData> {
     async () => {
       const config = getConfig();
 
-      // Fetch recent sprints
-      const sprintsResponse = await jiraClient.getSprints(config.jira.boardId, 'closed');
-      const sprints = sprintsResponse.values.slice(0, 10); // Last 10 sprints
+      try {
+        // Try to fetch recent sprints using Agile API
+        const sprintsResponse = await jiraClient.getSprints(config.jira.boardId, 'closed');
+        const sprints = sprintsResponse.values.slice(0, 10); // Last 10 sprints
 
-      // Fetch issues for each sprint
-      const sprintIssuesMap = new Map();
-      for (const sprint of sprints as any[]) {
-        const issuesResponse = await jiraClient.getSprintIssues(sprint.id, 200);
-        sprintIssuesMap.set(sprint.id, issuesResponse.issues);
+        // Fetch issues for each sprint
+        const sprintIssuesMap = new Map();
+        for (const sprint of sprints as any[]) {
+          try {
+            const issuesResponse = await jiraClient.getSprintIssues(sprint.id, 200);
+            sprintIssuesMap.set(sprint.id, issuesResponse.issues);
+          } catch (error) {
+            console.warn(`Failed to fetch issues for sprint ${sprint.id}:`, error);
+            sprintIssuesMap.set(sprint.id, []);
+          }
+        }
+
+        // Fetch active tickets
+        const activeQuery = buildActiveTicketsQuery();
+        const activeTicketsResponse = await jiraClient.searchIssues(
+          activeQuery,
+          STANDARD_FIELDS,
+          200
+        );
+
+        return buildJiraAnalyticsData(
+          sprints as any[],
+          sprintIssuesMap,
+          activeTicketsResponse.issues as any[]
+        );
+      } catch (error) {
+        console.error('Agile API failed, falling back to basic search:', error);
+
+        // Fallback: Use basic search without sprint data
+        const activeQuery = buildActiveTicketsQuery();
+        const activeTicketsResponse = await jiraClient.searchIssues(
+          activeQuery,
+          STANDARD_FIELDS,
+          200
+        );
+
+        return buildJiraAnalyticsData(
+          [],
+          new Map(),
+          activeTicketsResponse.issues as any[]
+        );
       }
-
-      // Fetch active tickets
-      const activeQuery = buildActiveTicketsQuery();
-      const activeTicketsResponse = await jiraClient.searchIssues(
-        activeQuery,
-        STANDARD_FIELDS,
-        200
-      );
-
-      return buildJiraAnalyticsData(
-        sprints as any[],
-        sprintIssuesMap,
-        activeTicketsResponse.issues as any[]
-      );
     },
     fetchMockJiraAnalytics
   );
