@@ -14,10 +14,6 @@ export class JiraClient {
 
     // Create Basic Auth header (base64 encode email:token)
     this.authHeader = 'Basic ' + btoa(`${this.email}:${this.apiToken}`);
-
-    console.log('[Jira Client] Initialized with domain:', this.domain);
-    console.log('[Jira Client] Email:', this.email);
-    console.log('[Jira Client] Dev mode:', import.meta.env.DEV);
   }
 
   private getBaseUrl(): string {
@@ -30,8 +26,6 @@ export class JiraClient {
 
   async get<T>(endpoint: string): Promise<T> {
     const url = `${this.getBaseUrl()}${endpoint}`;
-
-    console.log(`[Jira API] GET ${url}`);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -55,7 +49,6 @@ export class JiraClient {
         errorDetail = errorText;
       }
 
-      console.error(`[Jira API] Error Response:`, errorDetail);
       throw new Error(
         `Jira API error: ${response.status} ${response.statusText}\nURL: ${url}\nDetails: ${errorDetail}`
       );
@@ -66,9 +59,6 @@ export class JiraClient {
 
   async post<T>(endpoint: string, body: unknown): Promise<T> {
     const url = `${this.getBaseUrl()}${endpoint}`;
-
-    console.log(`[Jira API] POST ${url}`);
-    console.log(`[Jira API] Request Body:`, JSON.stringify(body, null, 2));
 
     const response = await fetch(url, {
       method: 'POST',
@@ -94,15 +84,12 @@ export class JiraClient {
         errorDetail = errorText;
       }
 
-      console.error(`[Jira API] Error Response:`, errorDetail);
       throw new Error(
         `Jira API error: ${response.status} ${response.statusText}\nURL: ${url}\nDetails: ${errorDetail}`
       );
     }
 
-    const responseData = await response.json();
-    console.log(`[Jira API] Response:`, responseData);
-    return responseData;
+    return response.json();
   }
 
   async searchIssues(jql: string, fields: string[] = [], maxResults: number = 100): Promise<{
@@ -119,10 +106,6 @@ export class JiraClient {
     if (fields.length > 0) {
       body.fields = fields;
     }
-
-    console.log(`[Jira searchIssues] JQL: ${jql}`);
-    console.log(`[Jira searchIssues] Fields: ${fields.join(', ')}`);
-    console.log(`[Jira searchIssues] MaxResults: ${maxResults}`);
 
     return this.post(endpoint, body);
   }
