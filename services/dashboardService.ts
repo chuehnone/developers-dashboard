@@ -49,13 +49,15 @@ interface DeveloperMapping {
 }
 
 // Default developer mapping - can be overridden by external config
+// Add your team members here with their GitHub login and Jira email
 const DEFAULT_DEVELOPER_MAP: DeveloperMapping[] = [
-  {
-    githubLogin: 'example-user',
-    jiraEmail: 'user@example.com',
-    name: 'Example User',
-    role: 'Fullstack',
-  },
+  // Add more team members below:
+  // {
+  //   githubLogin: 'github-username',
+  //   jiraEmail: 'email@myfunnow.com',
+  //   name: 'Developer Name',
+  //   role: 'Frontend', // or 'Backend', 'Fullstack', 'DevOps'
+  // },
 ];
 
 // Retry logic with exponential backoff
@@ -170,7 +172,7 @@ function determineStatus(metric: Partial<DeveloperMetric>): DeveloperStatus {
 export async function fetchDashboardData(
   range: TimeRange
 ): Promise<{ metrics: DeveloperMetric[]; summary: DashboardSummary }> {
-  const cacheKey = `dashboard_metrics_${range}`;
+  const cacheKey = `dashboard_metrics_v2_${range}`; // v2 to invalidate old cache
 
   return safeFetchWithCache(
     cacheKey,
@@ -224,7 +226,48 @@ export async function fetchDashboardData(
     ] as any[];
 
     // Create developer metrics by merging GitHub and Jira data
-    const developerMap = DEFAULT_DEVELOPER_MAP;
+    // Use GitHub org members if available, otherwise fall back to manual mapping
+    const githubMembers = membersData.organization.membersWithRole.nodes || [];
+    const githubTeams = membersData.organization.teams?.nodes || [];
+
+    console.log(`Found ${githubMembers.length} GitHub org members`);
+    console.log(`Found ${githubTeams.length} GitHub teams`);
+
+    // Create a map of user login to their teams
+    const userTeamsMap = new Map<string, string[]>();
+    for (const team of githubTeams) {
+      for (const member of team.members.nodes) {
+        if (!userTeamsMap.has(member.login)) {
+          userTeamsMap.set(member.login, []);
+        }
+        userTeamsMap.get(member.login)!.push(team.name);
+      }
+    }
+
+    const developerMap = githubMembers.length > 0
+      ? githubMembers.map(member => {
+          const userTeams = userTeamsMap.get(member.login) || [];
+          // Use first team name as role, or default to 'Fullstack'
+          const role = userTeams.length > 0 ? userTeams[0] : 'Fullstack';
+
+          return {
+            githubLogin: member.login,
+            jiraEmail: member.email || `${member.login}@${config.jira.domain.split('.')[0]}.com`,
+            name: member.name || member.login,
+            role: role as any, // Allow any team name as role
+          };
+        })
+      : DEFAULT_DEVELOPER_MAP;
+
+    console.log(`Processing metrics for ${developerMap.length} developers`);
+
+    // Log team assignments for debugging
+    developerMap.forEach(dev => {
+      const teams = userTeamsMap.get(dev.githubLogin) || [];
+      if (teams.length > 0) {
+        console.log(`${dev.name} (${dev.githubLogin}): ${dev.role} - All Teams: ${teams.join(', ')}`);
+      }
+    });
     const metrics: DeveloperMetric[] = [];
 
     for (const dev of developerMap) {
@@ -284,7 +327,7 @@ export async function fetchDashboardData(
 }
 
 export async function fetchGithubAnalytics(): Promise<GithubAnalyticsData> {
-  const cacheKey = 'dashboard_github';
+  const cacheKey = 'dashboard_github_v2'; // v2 to invalidate old cache
 
   return safeFetchWithCache(
     cacheKey,
@@ -315,7 +358,7 @@ export async function fetchGithubAnalytics(): Promise<GithubAnalyticsData> {
 }
 
 export async function fetchJiraAnalytics(): Promise<JiraAnalyticsData> {
-  const cacheKey = 'dashboard_jira';
+  const cacheKey = 'dashboard_jira_v2'; // v2 to invalidate old cache
 
   return safeFetchWithCache(
     cacheKey,

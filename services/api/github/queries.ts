@@ -91,6 +91,17 @@ export const GET_ORGANIZATION_MEMBERS = `
           email
         }
       }
+      teams(first: 50) {
+        nodes {
+          name
+          slug
+          members(first: 100) {
+            nodes {
+              login
+            }
+          }
+        }
+      }
     }
   }
 `;

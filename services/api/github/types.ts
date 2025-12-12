@@ -88,12 +88,25 @@ export interface GitHubRepository {
   };
 }
 
+export interface GitHubTeam {
+  name: string;
+  slug: string;
+  members: {
+    nodes: Array<{
+      login: string;
+    }>;
+  };
+}
+
 export interface GitHubOrganization {
   repositories: {
     nodes: GitHubRepository[];
   };
   membersWithRole?: {
     nodes: GitHubUser[];
+  };
+  teams?: {
+    nodes: GitHubTeam[];
   };
 }
 
@@ -135,6 +148,9 @@ export interface OrgMembersResponse {
   organization: {
     membersWithRole: {
       nodes: GitHubUser[];
+    };
+    teams?: {
+      nodes: GitHubTeam[];
     };
   };
 }
