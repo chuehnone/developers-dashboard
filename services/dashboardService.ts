@@ -178,7 +178,7 @@ export async function fetchDashboardData(
       const config = getConfig();
       const days = getTimeRangeDays(range);
 
-      // Calculate date range
+      // Calculate date range for filtering
       const since = new Date();
       since.setDate(since.getDate() - days);
 
@@ -187,12 +187,16 @@ export async function fetchDashboardData(
         GET_ORGANIZATION_PULL_REQUESTS,
         {
           org: config.github.org,
-          since: since.toISOString(),
           first: 100,
         }
       );
 
-      const allPRs = aggregateOrgPullRequests(githubData);
+      // Filter PRs by date range
+      const allPRsRaw = aggregateOrgPullRequests(githubData);
+      const allPRs = allPRsRaw.filter((pr) => {
+        const updatedAt = new Date(pr.updatedAt);
+        return updatedAt >= since;
+      });
 
     // Fetch GitHub members
     const membersData = await githubClient.query<OrgMembersResponse>(
@@ -293,12 +297,17 @@ export async function fetchGithubAnalytics(): Promise<GithubAnalyticsData> {
         GET_ORGANIZATION_PULL_REQUESTS,
         {
           org: config.github.org,
-          since: since.toISOString(),
           first: 100,
         }
       );
 
-      const allPRs = aggregateOrgPullRequests(githubData);
+      // Filter PRs by date
+      const allPRsRaw = aggregateOrgPullRequests(githubData);
+      const allPRs = allPRsRaw.filter((pr) => {
+        const updatedAt = new Date(pr.updatedAt);
+        return updatedAt >= since;
+      });
+
       return buildGithubAnalyticsData(allPRs);
     },
     fetchMockGithubAnalytics

@@ -1,5 +1,5 @@
 export const GET_ORGANIZATION_PULL_REQUESTS = `
-  query GetOrgPullRequests($org: String!, $since: DateTime!, $first: Int = 100) {
+  query GetOrgPullRequests($org: String!, $first: Int = 100) {
     organization(login: $org) {
       repositories(first: 100, orderBy: {field: UPDATED_AT, direction: DESC}) {
         nodes {
