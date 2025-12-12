@@ -1,10 +1,10 @@
 export const GET_ORGANIZATION_PULL_REQUESTS = `
-  query GetOrgPullRequests($org: String!, $first: Int = 30) {
+  query GetOrgPullRequests($org: String!, $first: Int = 20) {
     organization(login: $org) {
-      repositories(first: 15, orderBy: {field: UPDATED_AT, direction: DESC}) {
+      repositories(first: 10, orderBy: {field: UPDATED_AT, direction: DESC}) {
         nodes {
           name
-          pullRequests(first: $first, orderBy: {field: UPDATED_AT, direction: DESC}, states: [OPEN, MERGED, CLOSED]) {
+          pullRequests(first: $first, orderBy: {field: UPDATED_AT, direction: DESC}, states: [MERGED]) {
             nodes {
               number
               title
@@ -12,19 +12,17 @@ export const GET_ORGANIZATION_PULL_REQUESTS = `
               createdAt
               updatedAt
               mergedAt
-              closedAt
               additions
               deletions
               author {
                 login
               }
-              reviews(first: 5) {
+              reviews(first: 3) {
                 nodes {
                   author {
                     login
                   }
                   createdAt
-                  state
                 }
               }
               commits(first: 1) {
