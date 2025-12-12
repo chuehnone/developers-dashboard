@@ -36,7 +36,24 @@ developers-dashboard/
 │   └── WorkDistributionChart.tsx # Team workload distribution
 │
 ├── services/             # Data layer
-│   └── mockData.ts              # Mock API and data generation
+│   ├── api/
+│   │   ├── github/
+│   │   │   ├── client.ts        # GitHub GraphQL client
+│   │   │   ├── queries.ts       # GraphQL query definitions
+│   │   │   ├── types.ts         # GitHub API response types
+│   │   │   └── transforms.ts    # API response → App types
+│   │   ├── jira/
+│   │   │   ├── client.ts        # Jira REST client
+│   │   │   ├── endpoints.ts     # JQL query builders
+│   │   │   ├── types.ts         # Jira API response types
+│   │   │   └── transforms.ts    # API response → App types
+│   │   └── cache.ts             # localStorage cache layer
+│   ├── config.ts                # Environment variable validation
+│   ├── dashboardService.ts      # Main orchestrator (replaces mockData)
+│   └── mockData.ts              # Mock data (fallback/testing)
+│
+├── docs/                 # Documentation
+│   └── 0001-migrate-mock-to-real-api-integration.md
 │
 ├── App.tsx              # Main application component
 ├── index.tsx            # Application entry point
@@ -44,7 +61,8 @@ developers-dashboard/
 ├── vite.config.ts       # Vite configuration
 ├── tsconfig.json        # TypeScript configuration
 ├── package.json         # Dependencies and scripts
-└── .env.local           # Environment variables (gitignored)
+├── .env.local           # Environment variables (gitignored)
+└── .env.local.example   # Environment variable template
 ```
 
 ## Core Data Models
@@ -86,7 +104,12 @@ Combines GitHub and Jira stats for each team member:
 ```
 App.tsx (useEffect)
     ↓
-services/mockData.ts (API layer)
+services/dashboardService.ts (Orchestrator)
+    ↓
+├── services/api/github/client.ts → GitHub GraphQL API
+│   └── transforms.ts → DeveloperMetric, GithubStats
+└── services/api/jira/client.ts → Jira REST API
+    └── transforms.ts → JiraStats, SprintMetric
     ↓
 State Updates (setData, setSummary, etc.)
     ↓
@@ -136,32 +159,84 @@ npm run preview  # Preview production build
 ```
 
 ### Environment Variables
-Create `.env.local` for API keys or configuration:
+Create `.env.local` for API keys and configuration:
+
+```bash
+# GitHub Configuration
+VITE_GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+VITE_GITHUB_ORG=your-organization-name
+VITE_GITHUB_API_URL=https://api.github.com/graphql
+
+# Jira Configuration
+VITE_JIRA_DOMAIN=your-company.atlassian.net
+VITE_JIRA_EMAIL=your-email@company.com
+VITE_JIRA_API_TOKEN=ATATTxxxxxxxxxxxxxxxxxx
+VITE_JIRA_PROJECT_KEY=DEV
+VITE_JIRA_BOARD_ID=123
+
+# Optional Feature Flags
+VITE_CACHE_TTL_MINUTES=15
+VITE_FALLBACK_TO_MOCK=false
 ```
-VITE_API_URL=https://api.example.com
-```
+
+See `.env.local.example` for a complete template.
 
 ## Data Source
 
-Currently uses **mock data** (`services/mockData.ts`) for demonstration. In production:
+The dashboard integrates with **GitHub GraphQL API** and **Jira REST API** for real-time data.
 
-1. Replace `fetchDashboardData()` with real GitHub API calls
-2. Replace `fetchJiraAnalytics()` with Jira REST API integration
-3. Add authentication/authorization
-4. Implement real-time data refresh
-5. Add data caching layer
+### API Integration Architecture
+
+**GitHub Integration:**
+- Uses GraphQL API for efficient data fetching (5000 points/hour rate limit)
+- Fetches pull requests, commits, reviews, and contribution data across organization repositories
+- Calculates cycle time metrics (coding time, pickup time, review time)
+- Maps GitHub users to developer metrics via username/email mapping
+
+**Jira Integration:**
+- Uses REST API with Agile endpoints for sprint data
+- Fetches tickets via JQL queries filtered by assignee and project
+- Calculates velocity, story points, and investment profile
+- Tracks sprint metrics (say-do ratio, scope creep, completion rates)
+
+**Data Transformation:**
+- `services/api/github/transforms.ts` - Maps GitHub API responses to app types
+- `services/api/jira/transforms.ts` - Maps Jira API responses to app types
+- `services/dashboardService.ts` - Orchestrates and merges data from both sources
+
+**Caching:**
+- localStorage-based cache with configurable TTL (default 15 minutes)
+- Stale-while-revalidate pattern for better UX
+- Graceful fallback to cached data on API failures
+
+**Error Handling:**
+- Exponential backoff retry logic (3 attempts)
+- Partial data handling (show available data with warnings)
+- Fallback to mock data for development (configurable via `VITE_FALLBACK_TO_MOCK`)
+
+### Implementation Details
+
+See `docs/0001-migrate-mock-to-real-api-integration.md` for complete implementation plan including:
+- Detailed API endpoint documentation
+- Data mapping strategies
+- Authentication setup guide
+- Testing procedures
+- Troubleshooting guide
 
 ## Future Enhancements
 
-- [ ] Real API integration (GitHub GraphQL, Jira REST)
+- [x] Real API integration (GitHub GraphQL, Jira REST)
+- [ ] Backend proxy server for secure token management
 - [ ] User authentication and role-based access
 - [ ] Configurable metrics and thresholds
 - [ ] Export functionality (PDF reports)
 - [ ] Real-time updates (WebSockets)
 - [ ] Custom dashboard layouts
 - [ ] Team goals and OKR tracking
-- [ ] Historical trend analysis
+- [ ] Historical trend analysis (data warehouse)
 - [ ] Slack/Discord notifications
+- [ ] Advanced filtering and search
+- [ ] Custom developer mapping UI (instead of JSON config)
 
 ## Code Conventions
 
