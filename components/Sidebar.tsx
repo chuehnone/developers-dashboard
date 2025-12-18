@@ -1,11 +1,12 @@
 
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Settings, 
-  GitPullRequest, 
-  BarChart3
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
+  GitPullRequest,
+  BarChart3,
+  Sparkles
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -24,23 +25,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
       </div>
 
       <nav className="flex-1 py-6 space-y-2 px-2 md:px-4">
-        <NavItem 
-          icon={<LayoutDashboard size={20} />} 
-          label="Overview" 
-          active={currentView === 'overview'} 
+        <NavItem
+          icon={<LayoutDashboard size={20} />}
+          label="Overview"
+          active={currentView === 'overview'}
           onClick={() => onNavigate('overview')}
         />
-        <NavItem 
-          icon={<Users size={20} />} 
-          label="Team Members" 
-          active={currentView === 'members'} 
+        <NavItem
+          icon={<Users size={20} />}
+          label="Team Members"
+          active={currentView === 'members'}
           onClick={() => onNavigate('members')}
         />
-        <NavItem 
-          icon={<GitPullRequest size={20} />} 
-          label="GitHub Metrics" 
+        <NavItem
+          icon={<GitPullRequest size={20} />}
+          label="GitHub Metrics"
           active={currentView === 'github'}
-          onClick={() => onNavigate('github')} 
+          onClick={() => onNavigate('github')}
+        />
+        <NavItem
+          icon={<Sparkles size={20} />}
+          label="Copilot Usage"
+          active={currentView === 'copilot'}
+          onClick={() => onNavigate('copilot')}
         />
       </nav>
 

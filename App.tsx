@@ -12,14 +12,16 @@ import { VelocityChart } from './components/VelocityChart';
 import { MembersTable } from './components/MembersTable';
 import { MembersPage } from './components/MembersPage';
 import { GithubPage } from './components/GithubPage';
-import { fetchDashboardData, fetchGithubAnalytics } from './services/dashboardService';
-import { DeveloperMetric, DashboardSummary, TimeRange, GithubAnalyticsData } from './types';
+import { CopilotPage } from './components/CopilotPage';
+import { fetchDashboardData, fetchGithubAnalytics, fetchCopilotAnalytics } from './services/dashboardService';
+import { DeveloperMetric, DashboardSummary, TimeRange, GithubAnalyticsData, CopilotAnalyticsData } from './types';
 import { isConfigValid } from './services/config';
 
 const App: React.FC = () => {
   const [data, setData] = useState<DeveloperMetric[]>([]);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [githubData, setGithubData] = useState<GithubAnalyticsData | null>(null);
+  const [copilotData, setCopilotData] = useState<CopilotAnalyticsData | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [timeRange, setTimeRange] = useState<TimeRange>('sprint');
@@ -49,6 +51,9 @@ const App: React.FC = () => {
         const ghResult = await fetchGithubAnalytics();
         setGithubData(ghResult);
 
+        // Fetch Copilot analytics
+        const copilotResult = await fetchCopilotAnalytics(timeRange);
+        setCopilotData(copilotResult);
 
       } catch (error) {
         console.error("Failed to load dashboard data", error);
@@ -119,6 +124,9 @@ const App: React.FC = () => {
       return <GithubPage data={githubData} />;
     }
 
+    if (currentView === 'copilot' && copilotData) {
+      return <CopilotPage data={copilotData} />;
+    }
 
     // Default Overview Dashboard
     return (
@@ -155,6 +163,7 @@ const App: React.FC = () => {
     switch(currentView) {
       case 'members': return 'Team Members';
       case 'github': return 'GitHub Analytics';
+      case 'copilot': return 'Copilot Analytics';
       default: return 'Engineering Overview';
     }
   }
@@ -163,6 +172,7 @@ const App: React.FC = () => {
     switch(currentView) {
       case 'members': return 'Detailed performance breakdown per developer';
       case 'github': return 'Codebase health, cycle time, and review bottlenecks';
+      case 'copilot': return 'AI coding assistant adoption and activity tracking';
       default: return 'Track key metrics across GitHub';
     }
   }

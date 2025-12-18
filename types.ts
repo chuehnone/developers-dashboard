@@ -72,3 +72,43 @@ export interface GithubAnalyticsData {
   stalePRs: PullRequest[];
 }
 
+// Copilot Analytics Types
+
+export interface CopilotUserStats {
+  login: string;
+  name?: string;
+  avatar: string;
+  lastActivityAt: string | null;
+  lastActivityEditor: string | null;
+  assignedAt: string;
+  daysSinceActivity: number | null;
+  isActive: boolean; // Active if activity within last 7 days
+  status: 'active' | 'inactive' | 'never-used';
+}
+
+export interface CopilotEditorDistribution {
+  editor: string;
+  count: number;
+  percentage: number;
+}
+
+export interface CopilotActivityTrend {
+  date: string; // ISO date (YYYY-MM-DD)
+  activeUsers: number;
+  inactiveUsers: number;
+  totalSeats: number;
+}
+
+export interface CopilotAnalyticsData {
+  summary: {
+    totalSeats: number;
+    activeUsers: number;
+    inactiveUsers: number;
+    neverUsed: number;
+    adoptionRate: number; // Percentage of active users
+    avgDaysSinceActivity: number;
+  };
+  userStats: CopilotUserStats[];
+  editorDistribution: CopilotEditorDistribution[];
+  activityTrend: CopilotActivityTrend[];
+}

@@ -1,4 +1,5 @@
 import { githubClient } from './api/github/client';
+import { githubRestClient } from './api/github/restClient';
 import {
   GET_ORGANIZATION_PULL_REQUESTS,
   GET_ORGANIZATION_MEMBERS,
@@ -9,6 +10,7 @@ import {
   buildGithubAnalyticsData,
   getRecentActivityTrend,
 } from './api/github/transforms';
+import { buildCopilotAnalyticsData } from './api/github/copilotTransforms';
 import { getConfig } from './config';
 import { cache } from './api/cache';
 import {
@@ -20,6 +22,7 @@ import {
   DashboardSummary,
   TimeRange,
   GithubAnalyticsData,
+  CopilotAnalyticsData,
   DeveloperStatus,
   Developer,
 } from '../types';
@@ -308,3 +311,27 @@ export async function fetchGithubAnalytics(): Promise<GithubAnalyticsData> {
   );
 }
 
+/**
+ * Fetch GitHub Copilot usage analytics for the organization
+ * @param timeRange - Time range for activity trend calculation
+ */
+export async function fetchCopilotAnalytics(
+  timeRange: TimeRange
+): Promise<CopilotAnalyticsData> {
+  const cacheKey = `dashboard_copilot_v1_${timeRange}`;
+
+  return safeFetchWithCache(
+    cacheKey,
+    async () => {
+      const config = getConfig();
+      const days = getTimeRangeDays(timeRange);
+
+      // Fetch Copilot seats data from REST API
+      const copilotData = await githubRestClient.getCopilotSeats(config.github.org);
+
+      // Transform to analytics data
+      return buildCopilotAnalyticsData(copilotData, days);
+    },
+    undefined // No mock fallback for Copilot data
+  );
+}
