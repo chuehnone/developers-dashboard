@@ -17,12 +17,29 @@ export interface GithubStats {
 
 export type DeveloperStatus = 'Shipping' | 'Bug Fixing' | 'Tech Debt' | 'Blocked' | 'On Leave';
 
+// PR Comment Analysis Types
+
+export interface CommentAuthor {
+  login: string;
+  count: number;
+  avatar: string;  // https://github.com/{login}.png
+}
+
+export interface PRCommentAnalysis {
+  developerId: string;
+  totalCommentsReceived: number;  // Total comments on their PRs (excluding self)
+  uniqueCommenters: number;       // Number of unique people who commented
+  topCommenters: CommentAuthor[];  // Top 5 commenters sorted by count
+  allCommenters: CommentAuthor[];  // Full list for expandable view
+}
+
 // Combined interface for dashboard display
 export interface DeveloperMetric extends Developer, GithubStats {
   impactScore: number; // Calculated field
   impactTrend: number; // Percentage change
   status: DeveloperStatus;
   recentActivityTrend: number[]; // Array of commit counts for sparklines
+  commentAnalysis?: PRCommentAnalysis;  // Optional comment analysis data
 }
 
 export type TimeRange = 'sprint' | 'month' | 'quarter';

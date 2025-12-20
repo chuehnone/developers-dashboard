@@ -9,6 +9,7 @@ import {
   aggregateUserPullRequests,
   buildGithubAnalyticsData,
   getRecentActivityTrend,
+  analyzeCommentsOnDeveloperPRs,
 } from './api/github/transforms';
 import { buildCopilotAnalyticsData } from './api/github/copilotTransforms';
 import { getConfig } from './config';
@@ -25,6 +26,8 @@ import {
   CopilotAnalyticsData,
   DeveloperStatus,
   Developer,
+  PRCommentAnalysis,
+  CommentAuthor,
 } from '../types';
 import type {
   OrgPullRequestsResponse,
@@ -242,6 +245,26 @@ export async function fetchDashboardData(
         // Get activity trend
         const recentActivityTrend = getRecentActivityTrend(allPRs, dev.githubLogin, 7);
 
+        // Get comment analysis
+        const commentStats = analyzeCommentsOnDeveloperPRs(allPRs, dev.githubLogin);
+
+        // Transform to app-level type with avatar URLs
+        const commentAnalysis: PRCommentAnalysis = {
+          developerId: commentStats.developerId,
+          totalCommentsReceived: commentStats.totalComments,
+          uniqueCommenters: commentStats.uniqueCommenters,
+          topCommenters: commentStats.topCommenters.map(c => ({
+            login: c.login,
+            count: c.count,
+            avatar: `https://github.com/${c.login}.png`,
+          })),
+          allCommenters: commentStats.commenters.map(c => ({
+            login: c.login,
+            count: c.count,
+            avatar: `https://github.com/${c.login}.png`,
+          })),
+        };
+
         const developer: Developer = {
           id: dev.githubLogin,
           name: dev.name,
@@ -253,6 +276,7 @@ export async function fetchDashboardData(
           ...developer,
           ...githubStats,
           recentActivityTrend,
+          commentAnalysis,
           impactScore: calculateImpactScore(githubStats),
           impactTrend: 0, // TODO: Calculate based on historical data
           status: determineStatus(githubStats),

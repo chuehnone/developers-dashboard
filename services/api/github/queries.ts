@@ -17,12 +17,31 @@ export const GET_ORGANIZATION_PULL_REQUESTS = `
               author {
                 login
               }
-              reviews(first: 3) {
+              reviews(first: 50) {
                 nodes {
                   author {
                     login
                   }
                   createdAt
+                }
+              }
+              comments(first: 100) {
+                nodes {
+                  author {
+                    login
+                  }
+                  createdAt
+                }
+              }
+              timelineItems(first: 100, itemTypes: ISSUE_COMMENT) {
+                nodes {
+                  __typename
+                  ... on IssueComment {
+                    author {
+                      login
+                    }
+                    createdAt
+                  }
                 }
               }
               commits(first: 1) {

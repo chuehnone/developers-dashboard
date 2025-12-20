@@ -299,3 +299,90 @@ export function getRecentActivityTrend(
 
   return trend;
 }
+
+export interface CommentAuthorStats {
+  login: string;
+  count: number;
+}
+
+export interface DeveloperCommentAnalysis {
+  developerId: string;
+  totalComments: number;
+  uniqueCommenters: number;
+  topCommenters: CommentAuthorStats[];
+  commenters: CommentAuthorStats[];
+}
+
+/**
+ * Analyzes who commented on a developer's PRs
+ * Filters out self-comments (PR author commenting on their own PR)
+ * Combines review comments and issue comments
+ */
+export function analyzeCommentsOnDeveloperPRs(
+  allPRs: GitHubPullRequest[],
+  userLogin: string
+): DeveloperCommentAnalysis {
+  // Get PRs authored by this developer
+  const userPRs = allPRs.filter(
+    (pr) => pr.author.login.toLowerCase() === userLogin.toLowerCase()
+  );
+
+  // Map to count comments per commenter
+  const commenterCounts = new Map<string, number>();
+
+  for (const pr of userPRs) {
+    const prAuthor = pr.author.login.toLowerCase();
+
+    // Process review comments (code-level comments)
+    const reviewComments = pr.comments?.nodes || [];
+    for (const comment of reviewComments) {
+      if (!comment.author) {
+        continue; // Skip deleted users
+      }
+
+      const commenterLogin = comment.author.login.toLowerCase();
+
+      // Filter out PR author's own comments
+      if (commenterLogin === prAuthor) {
+        continue;
+      }
+
+      const currentCount = commenterCounts.get(commenterLogin) || 0;
+      commenterCounts.set(commenterLogin, currentCount + 1);
+    }
+
+    // Process issue comments (general PR discussion)
+    const timelineItems = pr.timelineItems?.nodes || [];
+    for (const item of timelineItems) {
+      // Type guard for IssueComment
+      if ('__typename' in item && item.__typename === 'IssueComment' && item.author) {
+        const commenterLogin = item.author.login.toLowerCase();
+
+        // Filter out PR author's own comments
+        if (commenterLogin === prAuthor) {
+          continue;
+        }
+
+        const currentCount = commenterCounts.get(commenterLogin) || 0;
+        commenterCounts.set(commenterLogin, currentCount + 1);
+      }
+    }
+  }
+
+  // Convert map to sorted array
+  const commenters: CommentAuthorStats[] = Array.from(commenterCounts.entries())
+    .map(([login, count]) => ({ login, count }))
+    .sort((a, b) => b.count - a.count);
+
+  const totalComments = commenters.reduce((sum, c) => sum + c.count, 0);
+  const uniqueCommenters = commenters.length;
+  const topCommenters = commenters.slice(0, 5); // Top 5
+
+  return {
+    developerId: userLogin,
+    totalComments,
+    uniqueCommenters,
+    topCommenters,
+    commenters,
+  };
+}

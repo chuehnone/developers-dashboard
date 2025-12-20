@@ -27,6 +27,21 @@ export interface GitHubReview {
   };
 }
 
+export interface GitHubComment {
+  author: {
+    login: string;
+  };
+  createdAt: string;
+}
+
+export interface GitHubIssueComment {
+  __typename: 'IssueComment';
+  author: {
+    login: string;
+  };
+  createdAt: string;
+}
+
 export interface GitHubTimelineItem {
   __typename: string;
   createdAt: string;
@@ -56,10 +71,10 @@ export interface GitHubPullRequest {
     nodes: GitHubReview[];
   };
   comments: {
-    totalCount: number;
+    nodes: GitHubComment[];
   };
   timelineItems?: {
-    nodes: GitHubTimelineItem[];
+    nodes: (GitHubTimelineItem | GitHubIssueComment)[];
   };
   commits: {
     nodes: Array<{
