@@ -114,10 +114,27 @@ export const EditorDistributionChart: React.FC<EditorDistributionChartProps> = (
               ]}
             />
             <Legend
-              verticalAlign="bottom"
-              height={36}
-              wrapperStyle={{ paddingTop: '20px' }}
+                layout="vertical"
+                align="right"
+                verticalAlign="middle"
+                wrapperStyle={{ paddingLeft: '10px' }}
+                formatter={(value) => {
+                  const isLong = value.length > 10;
+                  return (
+                      <span className="group relative">
+                    <span className={`text-slate-300`}>
+                      {isLong ? `${value.substring(0, 10)}...` : value}
+                    </span>
+                        {isLong && (
+                            <span className="invisible group-hover:visible absolute right-full top-1/2 mr-2 -translate-y-1/2 w-max rounded bg-slate-800 px-2 py-1 text-xs text-slate-100 shadow-lg border border-slate-700 z-50 pointer-events-none">
+                        {value}
+                      </span>
+                        )}
+                  </span>
+                  );
+                }}
             />
+
           </PieChart>
         </ResponsiveContainer>
       </div>
