@@ -109,8 +109,13 @@ export function aggregateUserPullRequests(
   }, 0);
   const avgCycleTimeHours = mergedPRs.length > 0 ? totalCycleTime / mergedPRs.length : 0;
 
-  // Count review comments given by this user
+  // Count review comments given by this user on OTHER people's PRs
   const reviewCommentsGiven = allPRs.reduce((sum, pr) => {
+    // Skip PRs authored by this user - only count reviews on others' PRs
+    if (pr.author.login.toLowerCase() === userLogin.toLowerCase()) {
+      return sum;
+    }
+
     const userReviews = pr.reviews.nodes.filter(
       (review) => review.author.login.toLowerCase() === userLogin.toLowerCase()
     );
