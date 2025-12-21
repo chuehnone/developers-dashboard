@@ -318,6 +318,19 @@ export interface DeveloperCommentAnalysis {
   commenters: CommentAuthorStats[];
 }
 
+export interface PRCommentedOnStats {
+  pr: GitHubPullRequest;
+  commentCount: number;
+  lastCommentedAt: string;
+}
+
+export interface DeveloperCommentGivenAnalysis {
+  developerId: string;
+  totalCommentsGiven: number;
+  totalPRsCommentedOn: number;
+  prsCommentedOn: PRCommentedOnStats[];
+}
+
 /**
  * Analyzes who commented on a developer's PRs
  * Filters out self-comments (PR author commenting on their own PR)
@@ -389,5 +402,99 @@ export function analyzeCommentsOnDeveloperPRs(
     uniqueCommenters,
     topCommenters,
     commenters,
+  };
+}
+
+/**
+ * Analyzes PRs that a developer commented on (inverse of analyzeCommentsOnDeveloperPRs)
+ * Tracks comments GIVEN by developer on OTHER people's PRs
+ * Filters out comments on their own PRs
+ * Combines review comments, direct comments, and timeline comments
+ */
+export function analyzeCommentsGivenByDeveloper(
+  allPRs: GitHubPullRequest[],
+  userLogin: string
+): DeveloperCommentGivenAnalysis {
+  const user = userLogin.toLowerCase();
+
+  // Map to track PRs and comment counts
+  const prCommentMap = new Map<string, PRCommentedOnStats>();
+
+  for (const pr of allPRs) {
+    const prAuthor = pr.author.login.toLowerCase();
+
+    // Skip PRs authored by this user - only analyze comments on OTHERS' PRs
+    if (prAuthor === user) {
+      continue;
+    }
+
+    let prCommentCount = 0;
+    let lastCommentDate = '';
+
+    // Count review comments (code-level comments from reviews)
+    const userReviews = pr.reviews?.nodes?.filter(
+      (review) => review.author?.login.toLowerCase() === user
+    ) || [];
+
+    for (const review of userReviews) {
+      prCommentCount += review.comments?.totalCount || 0;
+
+      // Track latest comment timestamp
+      if (review.createdAt > lastCommentDate) {
+        lastCommentDate = review.createdAt;
+      }
+    }
+
+    // Count direct comments (general PR discussion from comments array)
+    const userComments = pr.comments?.nodes?.filter(
+      (comment) => comment.author?.login.toLowerCase() === user
+    ) || [];
+    prCommentCount += userComments.length;
+
+    // Track latest comment from direct comments
+    for (const comment of userComments) {
+      if (comment.createdAt > lastCommentDate) {
+        lastCommentDate = comment.createdAt;
+      }
+    }
+
+    // Count issue comments from timeline (IssueComment type)
+    const timelineComments = pr.timelineItems?.nodes?.filter(
+      (item) =>
+        item.__typename === 'IssueComment' &&
+        item.author?.login.toLowerCase() === user
+    ) || [];
+    prCommentCount += timelineComments.length;
+
+    // Track latest comment from timeline
+    for (const item of timelineComments) {
+      if ('createdAt' in item && item.createdAt > lastCommentDate) {
+        lastCommentDate = item.createdAt;
+      }
+    }
+
+    // Only add to map if developer actually commented
+    if (prCommentCount > 0) {
+      const prKey = `${pr.repository?.name || 'unknown'}-${pr.number}`;
+      prCommentMap.set(prKey, {
+        pr,
+        commentCount: prCommentCount,
+        lastCommentedAt: lastCommentDate,
+      });
+    }
+  }
+
+  // Transform map to sorted array (by comment count DESC)
+  const prsCommentedOn = Array.from(prCommentMap.values())
+    .sort((a, b) => b.commentCount - a.commentCount);
+
+  const totalCommentsGiven = prsCommentedOn.reduce((sum, pr) => sum + pr.commentCount, 0);
+  const totalPRsCommentedOn = prsCommentedOn.length;
+
+  return {
+    developerId: userLogin,
+    totalCommentsGiven,
+    totalPRsCommentedOn,
+    prsCommentedOn,
   };
 }

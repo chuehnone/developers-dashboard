@@ -10,6 +10,7 @@ import {
   buildGithubAnalyticsData,
   getRecentActivityTrend,
   analyzeCommentsOnDeveloperPRs,
+  analyzeCommentsGivenByDeveloper,
 } from './api/github/transforms';
 import { buildCopilotAnalyticsData } from './api/github/copilotTransforms';
 import { getConfig } from './config';
@@ -26,6 +27,8 @@ import {
   CopilotAnalyticsData,
   Developer,
   PRCommentAnalysis,
+  PRCommentGivenAnalysis,
+  PRCommentedOn,
   CommentAuthor,
 } from '../types';
 import type {
@@ -229,7 +232,7 @@ export async function fetchDashboardData(
         // Get activity trend
         const recentActivityTrend = getRecentActivityTrend(allPRs, dev.githubLogin, 7);
 
-        // Get comment analysis
+        // Get comment analysis (comments RECEIVED on developer's PRs)
         const commentStats = analyzeCommentsOnDeveloperPRs(allPRs, dev.githubLogin);
 
         // Transform to app-level type with avatar URLs
@@ -249,6 +252,28 @@ export async function fetchDashboardData(
           })),
         };
 
+        // Get comment given analysis (comments GIVEN by developer on others' PRs)
+        const commentGivenStats = analyzeCommentsGivenByDeveloper(allPRs, dev.githubLogin);
+
+        // Transform to app-level type
+        const commentGivenAnalysis: PRCommentGivenAnalysis = {
+          developerId: commentGivenStats.developerId,
+          totalCommentsGiven: commentGivenStats.totalCommentsGiven,
+          totalPRsCommentedOn: commentGivenStats.totalPRsCommentedOn,
+          prsCommentedOn: commentGivenStats.prsCommentedOn.map(prStats => ({
+            prId: `${prStats.pr.repository?.name || 'unknown'}-${prStats.pr.number}`,
+            prNumber: prStats.pr.number,
+            prTitle: prStats.pr.title,
+            prUrl: `https://github.com/${prStats.pr.repository?.owner.login || 'unknown'}/${prStats.pr.repository?.name || 'unknown'}/pull/${prStats.pr.number}`,
+            prAuthor: prStats.pr.author.login,
+            prAuthorAvatar: `https://github.com/${prStats.pr.author.login}.png`,
+            repository: prStats.pr.repository?.name || 'unknown',
+            commentCount: prStats.commentCount,
+            status: prStats.pr.state === 'MERGED' ? 'merged' : prStats.pr.state === 'OPEN' ? 'open' : 'closed',
+            lastCommentedAt: prStats.lastCommentedAt,
+          })),
+        };
+
         const developer: Developer = {
           id: dev.githubLogin,
           name: dev.name,
@@ -261,6 +286,7 @@ export async function fetchDashboardData(
           ...githubStats,
           recentActivityTrend,
           commentAnalysis,
+          commentGivenAnalysis,
           impactScore: calculateImpactScore(githubStats),
           impactTrend: 0, // TODO: Calculate based on historical data
         } as DeveloperMetric;
