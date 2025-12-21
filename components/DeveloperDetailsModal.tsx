@@ -69,17 +69,6 @@ export const DeveloperDetailsModal: React.FC<DeveloperDetailsModalProps> = ({
                   src={developer.avatar}
                   alt={developer.name}
                 />
-                <div
-                  className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-slate-900 ${
-                    developer.status === 'Shipping'
-                      ? 'bg-emerald-500'
-                      : developer.status === 'Blocked'
-                      ? 'bg-red-500'
-                      : developer.status === 'On Leave'
-                      ? 'bg-slate-500'
-                      : 'bg-yellow-500'
-                  }`}
-                ></div>
               </div>
               <div>
                 <h2 id="modal-title" className="text-2xl font-bold text-slate-100">
@@ -88,19 +77,6 @@ export const DeveloperDetailsModal: React.FC<DeveloperDetailsModalProps> = ({
                 <div className="flex items-center gap-2 mt-1">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
                     {developer.role}
-                  </span>
-                  <span
-                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
-                      developer.status === 'Shipping'
-                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                        : developer.status === 'Blocked'
-                        ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                        : developer.status === 'On Leave'
-                        ? 'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                        : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                    }`}
-                  >
-                    {developer.status}
                   </span>
                 </div>
               </div>

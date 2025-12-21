@@ -1,5 +1,5 @@
 
-import { Developer, GithubStats, DeveloperMetric, DashboardSummary, TimeRange, DeveloperStatus, GithubAnalyticsData, PullRequest, CycleTimeDaily } from '../types';
+import { Developer, GithubStats, DeveloperMetric, DashboardSummary, TimeRange, GithubAnalyticsData, PullRequest, CycleTimeDaily } from '../types';
 
 const DEVELOPERS: Developer[] = [
   { id: 'dev_1', name: 'Alice Chen', role: 'Fullstack', avatar: 'https://picsum.photos/seed/alice/64/64' },
@@ -12,8 +12,6 @@ const DEVELOPERS: Developer[] = [
 ];
 
 const getRandomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
-
-const STATUSES: DeveloperStatus[] = ['Shipping', 'Shipping', 'Bug Fixing', 'Tech Debt', 'Blocked', 'On Leave'];
 
 // Simulate fetching data from external APIs
 export const fetchDashboardData = async (range: TimeRange): Promise<{ metrics: DeveloperMetric[], summary: DashboardSummary }> => {
@@ -42,7 +40,6 @@ export const fetchDashboardData = async (range: TimeRange): Promise<{ metrics: D
       ...github,
       impactScore,
       impactTrend: getRandomInt(-10, 15),
-      status: STATUSES[getRandomInt(0, STATUSES.length - 1)],
       recentActivityTrend: Array.from({ length: 7 }, () => getRandomInt(0, 15)),
     };
   });

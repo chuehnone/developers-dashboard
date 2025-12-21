@@ -157,7 +157,6 @@ VITE_FALLBACK_TO_MOCK=false
    - 或使用電子郵件推斷邏輯（GitHub username → Jira email）
 3. 實作計算邏輯:
    - `calculateImpactScore()` - 基於 velocity, PRs, reviews 計算
-   - `determineStatus()` - 根據活動票券推斷開發者狀態
    - `aggregateTimeRange()` - 根據 sprint/month/quarter 過濾資料
 
 **Impact Score 公式**:

@@ -24,7 +24,6 @@ import {
   TimeRange,
   GithubAnalyticsData,
   CopilotAnalyticsData,
-  DeveloperStatus,
   Developer,
   PRCommentAnalysis,
   CommentAuthor,
@@ -136,21 +135,6 @@ function calculateImpactScore(metric: Partial<DeveloperMetric>): number {
 
   const total = prScore + reviewScore;
   return Math.min(100, Math.round(total));
-}
-
-function determineStatus(metric: Partial<DeveloperMetric>): DeveloperStatus {
-  // Simple status based on PR activity
-  const prsMerged = metric.prsMerged || 0;
-
-  if (prsMerged === 0) {
-    return 'On Leave';
-  }
-
-  if (prsMerged >= 5) {
-    return 'Shipping';
-  }
-
-  return 'Shipping';
 }
 
 export async function fetchDashboardData(
@@ -279,7 +263,6 @@ export async function fetchDashboardData(
           commentAnalysis,
           impactScore: calculateImpactScore(githubStats),
           impactTrend: 0, // TODO: Calculate based on historical data
-          status: determineStatus(githubStats),
         } as DeveloperMetric;
 
         metrics.push(metric);

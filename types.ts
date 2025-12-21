@@ -15,8 +15,6 @@ export interface GithubStats {
   reviewCommentsGiven: number;
 }
 
-export type DeveloperStatus = 'Shipping' | 'Bug Fixing' | 'Tech Debt' | 'Blocked' | 'On Leave';
-
 // PR Comment Analysis Types
 
 export interface CommentAuthor {
@@ -37,7 +35,6 @@ export interface PRCommentAnalysis {
 export interface DeveloperMetric extends Developer, GithubStats {
   impactScore: number; // Calculated field
   impactTrend: number; // Percentage change
-  status: DeveloperStatus;
   recentActivityTrend: number[]; // Array of commit counts for sparklines
   commentAnalysis?: PRCommentAnalysis;  // Optional comment analysis data
 }

@@ -86,7 +86,6 @@ export const MembersPage: React.FC<MembersPageProps> = ({ data }) => {
             <thead className="bg-slate-950/50 text-slate-400 uppercase text-xs font-semibold">
               <tr>
                 <th className="px-6 py-4">Member Profile</th>
-                <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">GitHub Activity</th>
                 <th className="px-6 py-4 text-right">Impact Score</th>
               </tr>
@@ -109,11 +108,6 @@ export const MembersPage: React.FC<MembersPageProps> = ({ data }) => {
                               src={dev.avatar}
                               alt={dev.name}
                             />
-                            <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-slate-900 ${
-                              dev.status === 'Shipping' ? 'bg-emerald-500' :
-                              dev.status === 'Blocked' ? 'bg-red-500' :
-                              dev.status === 'On Leave' ? 'bg-slate-500' : 'bg-yellow-500'
-                            }`}></div>
                           </div>
                           <div className="ml-3">
                             <p className="text-sm font-semibold text-slate-100">{dev.name}</p>
@@ -122,18 +116,6 @@ export const MembersPage: React.FC<MembersPageProps> = ({ data }) => {
                             </span>
                           </div>
                         </div>
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-6 py-4">
-                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
-                            dev.status === 'Shipping' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                            dev.status === 'Blocked' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                            dev.status === 'On Leave' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
-                            'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                          }`}>
-                          {dev.status}
-                        </span>
                       </td>
 
                       {/* GitHub Activity */}
@@ -198,7 +180,7 @@ export const MembersPage: React.FC<MembersPageProps> = ({ data }) => {
                     {/* Expanded Comment Details Row */}
                     {isExpanded && hasComments && (
                       <tr className="bg-slate-800/20">
-                        <td colSpan={4} className="px-6 py-4">
+                        <td colSpan={3} className="px-6 py-4">
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
@@ -277,7 +259,7 @@ export const MembersPage: React.FC<MembersPageProps> = ({ data }) => {
 
               {filteredData.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={3} className="px-6 py-12 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center">
                       <AlertCircle className="h-8 w-8 mb-2 text-slate-600" />
                       <p>No team members found matching your filters.</p>
