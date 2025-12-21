@@ -1,12 +1,30 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { DeveloperMetric } from '../types';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Eye } from 'lucide-react';
+import { DropdownMenu } from './DropdownMenu';
+import { DeveloperDetailsModal } from './DeveloperDetailsModal';
 
 interface MembersTableProps {
   data: DeveloperMetric[];
 }
 
 export const MembersTable: React.FC<MembersTableProps> = ({ data }) => {
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [selectedDeveloper, setSelectedDeveloper] = useState<DeveloperMetric | null>(null);
+  const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+
+  const toggleDropdown = (devId: string) => {
+    setOpenDropdownId(prev => prev === devId ? null : devId);
+  };
+
+  const openDeveloperModal = (dev: DeveloperMetric) => {
+    setSelectedDeveloper(dev);
+    setOpenDropdownId(null);
+  };
+
+  const closeModal = () => {
+    setSelectedDeveloper(null);
+  };
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
       <div className="p-6 border-b border-slate-800 flex justify-between items-center">
@@ -64,15 +82,35 @@ export const MembersTable: React.FC<MembersTableProps> = ({ data }) => {
                   {dev.reviewCommentsGiven}
                 </td>
                 <td className="px-6 py-4 text-center">
-                  <button className="text-slate-500 hover:text-slate-300 transition-colors">
+                  <button
+                    ref={(el) => (buttonRefs.current[dev.id] = el)}
+                    onClick={() => toggleDropdown(dev.id)}
+                    className="text-slate-500 hover:text-slate-300 transition-colors"
+                    aria-label="Open developer actions menu"
+                    aria-haspopup="true"
+                    aria-expanded={openDropdownId === dev.id}
+                  >
                     <MoreHorizontal size={18} />
                   </button>
+                  <DropdownMenu
+                    isOpen={openDropdownId === dev.id}
+                    onClose={() => setOpenDropdownId(null)}
+                    items={[
+                      {
+                        label: 'View detailed metrics',
+                        icon: Eye,
+                        onClick: () => openDeveloperModal(dev),
+                      },
+                    ]}
+                    anchorRef={buttonRefs.current[dev.id] ? { current: buttonRefs.current[dev.id] } : { current: null }}
+                  />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      <DeveloperDetailsModal developer={selectedDeveloper} onClose={closeModal} />
     </div>
   );
 };
