@@ -2,8 +2,6 @@
 
 > A comprehensive engineering analytics platform for tracking developer metrics, GitHub performance, and Copilot adoption.
 
-**Live Demo**: https://ai.studio/apps/drive/15OoJp-sjX62kbFoL8v2AUBoY2CzFqy7N
-
 ## Overview
 
 Developer Dashboard is a real-time analytics platform that provides actionable insights into your engineering team's performance. Built with modern web technologies, it integrates with GitHub's GraphQL and REST APIs to deliver comprehensive metrics on code review cycles, developer productivity, and GitHub Copilot adoption.
