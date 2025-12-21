@@ -219,12 +219,6 @@ const App: React.FC = () => {
                   <option value="quarter">Last Quarter</option>
                 </select>
               </div>
-              
-              <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 p-[2px]">
-                <div className="h-full w-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
-                   <img src="https://picsum.photos/seed/manager/100/100" alt="Profile" className="h-full w-full object-cover" />
-                </div>
-              </div>
             </div>
           </div>
         </header>
