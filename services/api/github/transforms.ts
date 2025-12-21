@@ -9,6 +9,8 @@ import {
   PullRequest,
   CycleTimeDaily,
   GithubAnalyticsData,
+  PRCreatedDetail,
+  PRCreatedAnalysis,
 } from '../../../types';
 
 export interface CycleTimeBreakdown {
@@ -496,5 +498,60 @@ export function analyzeCommentsGivenByDeveloper(
     totalCommentsGiven,
     totalPRsCommentedOn,
     prsCommentedOn,
+  };
+}
+
+/**
+ * Analyzes PRs created by a developer
+ * Provides list of PRs authored by the developer with key metadata
+ */
+export function analyzePRsCreatedByDeveloper(
+  allPRs: GitHubPullRequest[],
+  userLogin: string
+): PRCreatedAnalysis {
+  const user = userLogin.toLowerCase();
+
+  // Filter to PRs authored by this developer
+  const userPRs = allPRs.filter(
+    (pr) => pr.author.login.toLowerCase() === user
+  );
+
+  // Map PRs to details
+  const prsCreated: PRCreatedDetail[] = userPRs.map((pr) => {
+    const prId = `${pr.repository?.name || 'unknown'}-${pr.number}`;
+    const prUrl = `https://github.com/${pr.repository?.owner.login || 'unknown'}/${pr.repository?.name || 'unknown'}/pull/${pr.number}`;
+    const repository = pr.repository?.name || 'unknown';
+    const status = pr.state === 'MERGED' ? 'merged' : pr.state === 'OPEN' ? 'open' : 'closed';
+    const milestone = pr.milestone?.title || null;
+
+    return {
+      prId,
+      prNumber: pr.number,
+      prTitle: pr.title,
+      prUrl,
+      repository,
+      status,
+      milestone,
+      createdAt: pr.createdAt,
+      mergedAt: pr.mergedAt || null,
+    };
+  });
+
+  // Sort by creation date DESC (newest first)
+  prsCreated.sort((a, b) => {
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  // Calculate summary stats
+  const totalPRsCreated = prsCreated.length;
+  const totalPRsMerged = prsCreated.filter((p) => p.status === 'merged').length;
+  const totalPRsOpen = prsCreated.filter((p) => p.status === 'open').length;
+
+  return {
+    developerId: userLogin,
+    totalPRsCreated,
+    totalPRsMerged,
+    totalPRsOpen,
+    prsCreated,
   };
 }

@@ -53,6 +53,28 @@ export interface PRCommentGivenAnalysis {
   prsCommentedOn: PRCommentedOn[]; // Detailed list, sorted by comment count DESC
 }
 
+// PR Created Analysis Types - tracks PRs created by developer
+
+export interface PRCreatedDetail {
+  prId: string;              // Unique PR identifier (repo-number)
+  prNumber: number;          // PR number
+  prTitle: string;           // PR title
+  prUrl: string;             // GitHub PR URL
+  repository: string;        // Repository name
+  status: 'merged' | 'open' | 'closed';  // PR status
+  milestone: string | null;  // Milestone title (null if no milestone)
+  createdAt: string;         // ISO timestamp
+  mergedAt: string | null;   // ISO timestamp (null if not merged)
+}
+
+export interface PRCreatedAnalysis {
+  developerId: string;
+  totalPRsCreated: number;       // Total PRs created
+  totalPRsMerged: number;        // Total PRs merged
+  totalPRsOpen: number;          // Total PRs still open
+  prsCreated: PRCreatedDetail[]; // Detailed list (sorted newest first)
+}
+
 // Combined interface for dashboard display
 export interface DeveloperMetric extends Developer, GithubStats {
   impactScore: number; // Calculated field
@@ -60,6 +82,7 @@ export interface DeveloperMetric extends Developer, GithubStats {
   recentActivityTrend: number[]; // Array of commit counts for sparklines
   commentAnalysis?: PRCommentAnalysis;  // Optional comment analysis data (comments RECEIVED)
   commentGivenAnalysis?: PRCommentGivenAnalysis;  // Optional comment given analysis (comments GIVEN)
+  prCreatedAnalysis?: PRCreatedAnalysis;  // Optional PR created analysis (PRs AUTHORED)
 }
 
 export type TimeRange = 'sprint' | 'month' | 'quarter';

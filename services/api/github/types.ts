@@ -54,6 +54,12 @@ export interface GitHubTimelineItem {
   state?: string;
 }
 
+export interface GitHubMilestone {
+  title: string;
+  number: number;
+  state: 'OPEN' | 'CLOSED';
+}
+
 export interface GitHubPullRequest {
   number: number;
   title: string;
@@ -64,6 +70,7 @@ export interface GitHubPullRequest {
   closedAt?: string;
   additions: number;
   deletions: number;
+  milestone?: GitHubMilestone;
   author: {
     login: string;
   };

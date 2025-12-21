@@ -14,6 +14,11 @@ export const GET_ORGANIZATION_PULL_REQUESTS = `
               mergedAt
               additions
               deletions
+              milestone {
+                title
+                number
+                state
+              }
               author {
                 login
               }
@@ -138,6 +143,11 @@ export const GET_PULL_REQUEST_DETAILS = `
         closedAt
         additions
         deletions
+        milestone {
+          title
+          number
+          state
+        }
         author {
           login
         }
@@ -233,6 +243,11 @@ export const SEARCH_RECENT_PULL_REQUESTS = `
           closedAt
           additions
           deletions
+          milestone {
+            title
+            number
+            state
+          }
           repository {
             name
             owner {

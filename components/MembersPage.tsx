@@ -1,11 +1,12 @@
 import React, {useMemo, useState} from 'react';
-import {DeveloperMetric} from '../types';
+import {DeveloperMetric, PRCreatedDetail} from '../types';
 import {
     AlertCircle,
     ArrowDownRight,
     ArrowUpRight,
     ChevronDown,
     ChevronUp,
+    Code,
     ExternalLink,
     Filter,
     GitMerge,
@@ -98,6 +99,7 @@ export const MembersPage: React.FC<MembersPageProps> = ({data}) => {
                             const isExpanded = expandedRows.has(dev.id);
                             const hasComments = dev.commentAnalysis && dev.commentAnalysis.uniqueCommenters > 0;
                             const hasCommentsGiven = dev.commentGivenAnalysis && dev.commentGivenAnalysis.totalCommentsGiven > 0;
+                            const hasPRsCreated = dev.prCreatedAnalysis && dev.prCreatedAnalysis.totalPRsCreated > 0;
 
                             return (
                                 <React.Fragment key={dev.id}>
@@ -189,8 +191,8 @@ export const MembersPage: React.FC<MembersPageProps> = ({data}) => {
                                                     <div className="text-sm text-slate-500">No comments</div>
                                                 )}
 
-                                                {/* Expand/Collapse Button - Show if has comments given OR received */}
-                                                {(hasCommentsGiven || hasComments) && (
+                                                {/* Expand/Collapse Button - Show if has comments given OR received OR PRs created */}
+                                                {(hasCommentsGiven || hasComments || hasPRsCreated) && (
                                                     <button
                                                         onClick={() => toggleRow(dev.id)}
                                                         className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
@@ -390,6 +392,98 @@ export const MembersPage: React.FC<MembersPageProps> = ({data}) => {
                                           <span className="text-sm font-semibold text-emerald-400">
                                             {pr.commentCount}
                                           </span>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {/* PRs Created by Developer Section */}
+                                    {isExpanded && hasPRsCreated && (
+                                        <tr className="bg-slate-800/20">
+                                            <td colSpan={4} className="px-6 py-4">
+                                                <div className="space-y-4">
+                                                    {/* Section Header */}
+                                                    <div className="flex items-center justify-between">
+                                                        <h4 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                                                            <Code size={16} className="text-blue-500"/>
+                                                            PRs Created by {dev.name}
+                                                        </h4>
+                                                        <div className="text-xs text-slate-400">
+                                                            {dev.prCreatedAnalysis!.totalPRsCreated} PRs created • {dev.prCreatedAnalysis!.totalPRsMerged} merged • {dev.prCreatedAnalysis!.totalPRsOpen} open
+                                                        </div>
+                                                    </div>
+
+                                                    {/* PR List Table */}
+                                                    <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
+                                                        <div className="max-h-96 overflow-y-auto">
+                                                            <table className="w-full">
+                                                                {/* Table Header */}
+                                                                <thead className="bg-slate-950/50 text-slate-400 uppercase text-xs font-semibold sticky top-0">
+                                                                <tr>
+                                                                    <th className="px-4 py-2 text-left">PR Title</th>
+                                                                    <th className="px-4 py-2 text-left">Repository</th>
+                                                                    <th className="px-4 py-2 text-center">Status</th>
+                                                                    <th className="px-4 py-2 text-center">Milestone</th>
+                                                                </tr>
+                                                                </thead>
+                                                                {/* Table Body */}
+                                                                <tbody className="divide-y divide-slate-800">
+                                                                {dev.prCreatedAnalysis!.prsCreated.map((pr) => (
+                                                                    <tr key={pr.prId} className="hover:bg-slate-800/30 transition-colors">
+                                                                        {/* PR Title */}
+                                                                        <td className="px-4 py-3">
+                                                                            <a
+                                                                                href={pr.prUrl}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="text-sm text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1"
+                                                                            >
+                                                                                {pr.prTitle}
+                                                                                <ExternalLink size={12}/>
+                                                                            </a>
+                                                                            <div className="text-xs text-slate-500 mt-1">
+                                                                                #{pr.prNumber}
+                                                                            </div>
+                                                                        </td>
+                                                                        {/* Repository */}
+                                                                        <td className="px-4 py-3">
+                                                                            <span className="text-xs text-slate-400">{pr.repository}</span>
+                                                                        </td>
+                                                                        {/* Status Badge */}
+                                                                        <td className="px-4 py-3 text-center">
+                                                                            {pr.status === 'merged' ? (
+                                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-400">
+                                                                                    <GitMerge size={12}/>
+                                                                                    Merged
+                                                                                </span>
+                                                                            ) : pr.status === 'open' ? (
+                                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400">
+                                                                                    <AlertCircle size={12}/>
+                                                                                    Open
+                                                                                </span>
+                                                                            ) : (
+                                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-slate-500/20 text-slate-400">
+                                                                                    <AlertCircle size={12}/>
+                                                                                    Closed
+                                                                                </span>
+                                                                            )}
+                                                                        </td>
+                                                                        {/* Milestone */}
+                                                                        <td className="px-4 py-3 text-center">
+                                                                            {pr.milestone ? (
+                                                                                <span className="text-sm text-slate-300">
+                                                                                    {pr.milestone}
+                                                                                </span>
+                                                                            ) : (
+                                                                                <span className="text-xs text-slate-500">-</span>
+                                                                            )}
                                                                         </td>
                                                                     </tr>
                                                                 ))}

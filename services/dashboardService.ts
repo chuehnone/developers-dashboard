@@ -11,6 +11,7 @@ import {
   getRecentActivityTrend,
   analyzeCommentsOnDeveloperPRs,
   analyzeCommentsGivenByDeveloper,
+  analyzePRsCreatedByDeveloper,
 } from './api/github/transforms';
 import { buildCopilotAnalyticsData } from './api/github/copilotTransforms';
 import { getConfig } from './config';
@@ -30,6 +31,7 @@ import {
   PRCommentGivenAnalysis,
   PRCommentedOn,
   CommentAuthor,
+  PRCreatedAnalysis,
 } from '../types';
 import type {
   OrgPullRequestsResponse,
@@ -274,6 +276,12 @@ export async function fetchDashboardData(
           })),
         };
 
+        // Analyze PRs created by developer
+        const prCreatedAnalysis: PRCreatedAnalysis = analyzePRsCreatedByDeveloper(
+          allPRs,
+          dev.githubLogin
+        );
+
         const developer: Developer = {
           id: dev.githubLogin,
           name: dev.name,
@@ -287,6 +295,7 @@ export async function fetchDashboardData(
           recentActivityTrend,
           commentAnalysis,
           commentGivenAnalysis,
+          prCreatedAnalysis,
           impactScore: calculateImpactScore(githubStats),
           impactTrend: 0, // TODO: Calculate based on historical data
         } as DeveloperMetric;
