@@ -105,6 +105,9 @@ export const EditorDistributionChart: React.FC<EditorDistributionChartProps> = (
                 borderColor: '#1e293b',
                 color: '#f1f5f9',
               }}
+              itemStyle={{
+                color: '#f1f5f9',
+              }}
               formatter={(value: number, name: string, entry: any) => [
                 `${value} users (${entry.payload.percentage}%)`,
                 name,
