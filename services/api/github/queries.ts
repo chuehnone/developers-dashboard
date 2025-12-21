@@ -1,9 +1,13 @@
 export const GET_ORGANIZATION_PULL_REQUESTS = `
   query GetOrgPullRequests($org: String!, $first: Int = 20) {
     organization(login: $org) {
+      login
       repositories(first: 10, orderBy: {field: UPDATED_AT, direction: DESC}) {
         nodes {
           name
+          owner {
+            login
+          }
           pullRequests(first: $first, orderBy: {field: UPDATED_AT, direction: DESC}, states: [MERGED]) {
             nodes {
               number

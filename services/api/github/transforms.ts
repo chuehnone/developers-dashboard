@@ -139,6 +139,7 @@ export function aggregateOrgPullRequests(
   response: OrgPullRequestsResponse
 ): GitHubPullRequest[] {
   const allPRs: GitHubPullRequest[] = [];
+  const orgLogin = response.organization.login || 'unknown';
 
   for (const repo of response.organization.repositories.nodes) {
     for (const pr of repo.pullRequests.nodes) {
@@ -147,7 +148,7 @@ export function aggregateOrgPullRequests(
         repository: {
           name: repo.name,
           owner: {
-            login: response.organization.repositories.nodes[0].name, // Approximation
+            login: repo.owner?.login || orgLogin,
           },
         },
       });

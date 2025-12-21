@@ -98,6 +98,9 @@ export interface GitHubPullRequest {
 
 export interface GitHubRepository {
   name: string;
+  owner?: {
+    login: string;
+  };
   pullRequests: {
     nodes: GitHubPullRequest[];
   };
@@ -121,6 +124,7 @@ export interface GitHubTeam {
 }
 
 export interface GitHubOrganization {
+  login?: string;
   repositories: {
     nodes: GitHubRepository[];
   };
