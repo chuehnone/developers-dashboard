@@ -166,10 +166,6 @@ export interface OrgPullRequestsResponse {
   organization: GitHubOrganization;
 }
 
-export interface UserContributionsResponse {
-  user: GitHubUserWithContributions;
-}
-
 export interface OrgMembersResponse {
   organization: {
     membersWithRole: {
@@ -179,26 +175,4 @@ export interface OrgMembersResponse {
       nodes: GitHubTeam[];
     };
   };
-}
-
-export interface PullRequestDetailsResponse {
-  repository: {
-    pullRequest: GitHubPullRequest;
-  };
-}
-
-export interface SearchPullRequestsResponse {
-  search: {
-    nodes: GitHubPullRequest[];
-  };
-}
-
-export interface RepositoryActivityResponse {
-  repository: GitHubRepository;
-}
-
-export interface RateLimitInfo {
-  remaining: number;
-  limit: number;
-  resetAt: string;
 }
