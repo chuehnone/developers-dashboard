@@ -70,7 +70,7 @@ export function calculateCycleTime(pr: GitHubPullRequest): CycleTimeBreakdown {
   };
 }
 
-export function mapGitHubPRToAppPR(pr: GitHubPullRequest, repoName?: string): PullRequest {
+function mapGitHubPRToAppPR(pr: GitHubPullRequest, repoName?: string): PullRequest {
   const firstCommit = pr.commits.nodes[0]?.commit.committedDate;
   const firstReview = pr.reviews.nodes[0]?.createdAt;
 
@@ -158,7 +158,7 @@ export function aggregateOrgPullRequests(
   return allPRs;
 }
 
-export function calculateDailyCycleTimeTrend(
+function calculateDailyCycleTimeTrend(
   allPRs: GitHubPullRequest[],
   days: number = 30
 ): CycleTimeDaily[] {
