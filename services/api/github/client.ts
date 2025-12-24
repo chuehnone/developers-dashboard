@@ -37,52 +37,6 @@ export class GitHubClient {
 
     return result.data as T;
   }
-
-  async getRateLimit(): Promise<{
-    remaining: number;
-    limit: number;
-    resetAt: string;
-  }> {
-    const query = `
-      query {
-        rateLimit {
-          remaining
-          limit
-          resetAt
-        }
-      }
-    `;
-
-    const data = await this.query<{
-      rateLimit: {
-        remaining: number;
-        limit: number;
-        resetAt: string;
-      };
-    }>(query);
-
-    return data.rateLimit;
-  }
-
-  async testConnection(): Promise<{ success: boolean; login?: string; error?: string }> {
-    try {
-      const query = `
-        query {
-          viewer {
-            login
-          }
-        }
-      `;
-
-      const data = await this.query<{ viewer: { login: string } }>(query);
-      return { success: true, login: data.viewer.login };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
 }
 
 export const githubClient = new GitHubClient();
