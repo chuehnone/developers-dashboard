@@ -1,5 +1,5 @@
 import React, {useMemo, useState} from 'react';
-import {DeveloperMetric, PRCreatedDetail} from '../types';
+import {DeveloperMetric} from '../types';
 import {
     AlertCircle,
     ArrowDownRight,
