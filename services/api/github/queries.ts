@@ -37,6 +37,9 @@ export const GET_ORGANIZATION_PULL_REQUESTS = `
                     login
                   }
                   createdAt
+                  comments {
+                    totalCount
+                  }
                 }
               }
               comments(first: 100) {
