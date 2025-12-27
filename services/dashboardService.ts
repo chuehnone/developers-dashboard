@@ -132,6 +132,21 @@ function getTimeRangeDays(range: TimeRange): number {
   }
 }
 
+/**
+ * Calculate optimal fetch size based on time range
+ * Assumes ~2 PRs/day per repo on average
+ */
+function calculateFetchSize(range: TimeRange): number {
+  switch (range) {
+    case 'sprint':
+      return 30;   // 14 days → ~2 PRs/day × 14 × 1.07x buffer
+    case 'month':
+      return 60;   // 30 days → ~2 PRs/day × 30
+    case 'quarter':
+      return 100;  // 90 days → max safe query size
+  }
+}
+
 function calculateImpactScore(metric: Partial<DeveloperMetric>): number {
   const multiplier = 1.0;
 
@@ -145,33 +160,40 @@ function calculateImpactScore(metric: Partial<DeveloperMetric>): number {
 export async function fetchDashboardData(
   range: TimeRange
 ): Promise<{ metrics: DeveloperMetric[]; summary: DashboardSummary }> {
-  const cacheKey = `dashboard_metrics_v2_${range}`; // v2 to invalidate old cache
+  const cacheKey = `dashboard_metrics_v3_${range}`; // v3 to invalidate old cache
 
   return safeFetchWithCache(
     cacheKey,
     async () => {
       const config = getConfig();
       const days = getTimeRangeDays(range);
+      const fetchSize = calculateFetchSize(range);
 
-      // Calculate date range for filtering
+      // Calculate date range for validation and logging
       const since = new Date();
       since.setDate(since.getDate() - days);
 
-      // Fetch GitHub data
+      console.log(`Fetching ${fetchSize} PRs per repo for ${range} range (${days} days)`);
+
+      // Fetch GitHub data with dynamic fetch size
       const githubData = await githubClient.query<OrgPullRequestsResponse>(
         GET_ORGANIZATION_PULL_REQUESTS,
         {
           org: config.github.org,
-          first: 20,
+          first: fetchSize,
         }
       );
 
-      // Filter PRs by date range
-      const allPRsRaw = aggregateOrgPullRequests(githubData);
-      const allPRs = allPRsRaw.filter((pr) => {
-        const updatedAt = new Date(pr.updatedAt);
-        return updatedAt >= since;
-      });
+      // Use all fetched PRs (no client-side date filtering)
+      const allPRs = aggregateOrgPullRequests(githubData);
+
+      // Log data coverage for validation
+      const prDates = allPRs.map(pr => new Date(pr.updatedAt));
+      const oldestPR = prDates.length > 0 ? new Date(Math.min(...prDates.map(d => d.getTime()))) : null;
+      if (oldestPR) {
+        const daysCovered = Math.floor((Date.now() - oldestPR.getTime()) / (1000 * 60 * 60 * 24));
+        console.log(`Data coverage: ${daysCovered} days (target: ${days} days)`);
+      }
 
       // Fetch GitHub members
       const membersData = await githubClient.query<OrgMembersResponse>(
@@ -322,30 +344,42 @@ export async function fetchDashboardData(
   );
 }
 
-export async function fetchGithubAnalytics(): Promise<GithubAnalyticsData> {
-  const cacheKey = 'dashboard_github_v2'; // v2 to invalidate old cache
+export async function fetchGithubAnalytics(
+  timeRange: TimeRange = 'month'
+): Promise<GithubAnalyticsData> {
+  const cacheKey = `dashboard_github_v3_${timeRange}`; // v3 to invalidate old cache
 
   return safeFetchWithCache(
     cacheKey,
     async () => {
       const config = getConfig();
+      const days = getTimeRangeDays(timeRange);
+      const fetchSize = calculateFetchSize(timeRange);
+
+      // Calculate date range for validation and logging
       const since = new Date();
-      since.setDate(since.getDate() - 30); // Last 30 days
+      since.setDate(since.getDate() - days);
+
+      console.log(`[GitHub Analytics] Fetching ${fetchSize} PRs per repo for ${timeRange} range (${days} days)`);
 
       const githubData = await githubClient.query<OrgPullRequestsResponse>(
         GET_ORGANIZATION_PULL_REQUESTS,
         {
           org: config.github.org,
-          first: 20,
+          first: fetchSize,
         }
       );
 
-      // Filter PRs by date
-      const allPRsRaw = aggregateOrgPullRequests(githubData);
-      const allPRs = allPRsRaw.filter((pr) => {
-        const updatedAt = new Date(pr.updatedAt);
-        return updatedAt >= since;
-      });
+      // Use all fetched PRs (no client-side date filtering)
+      const allPRs = aggregateOrgPullRequests(githubData);
+
+      // Log data coverage for validation
+      const prDates = allPRs.map(pr => new Date(pr.updatedAt));
+      const oldestPR = prDates.length > 0 ? new Date(Math.min(...prDates.map(d => d.getTime()))) : null;
+      if (oldestPR) {
+        const daysCovered = Math.floor((Date.now() - oldestPR.getTime()) / (1000 * 60 * 60 * 24));
+        console.log(`[GitHub Analytics] Data coverage: ${daysCovered} days (target: ${days} days)`);
+      }
 
       return buildGithubAnalyticsData(allPRs);
     },

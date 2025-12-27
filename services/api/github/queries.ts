@@ -1,5 +1,5 @@
 export const GET_ORGANIZATION_PULL_REQUESTS = `
-  query GetOrgPullRequests($org: String!, $first: Int = 20) {
+  query GetOrgPullRequests($org: String!, $first: Int = 50) {
     organization(login: $org) {
       login
       repositories(first: 10, orderBy: {field: UPDATED_AT, direction: DESC}) {
@@ -9,6 +9,11 @@ export const GET_ORGANIZATION_PULL_REQUESTS = `
             login
           }
           pullRequests(first: $first, orderBy: {field: UPDATED_AT, direction: DESC}, states: [MERGED]) {
+            totalCount
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
             nodes {
               number
               title

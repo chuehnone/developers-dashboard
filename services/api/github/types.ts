@@ -1,3 +1,8 @@
+export interface PageInfo {
+  hasNextPage: boolean;
+  endCursor: string | null;
+}
+
 export interface GitHubUser {
   login: string;
   name?: string;
@@ -102,6 +107,8 @@ export interface GitHubRepository {
     login: string;
   };
   pullRequests: {
+    totalCount: number;
+    pageInfo: PageInfo;
     nodes: GitHubPullRequest[];
   };
   defaultBranchRef?: {

@@ -48,7 +48,7 @@ const App: React.FC = () => {
 
         // Fetch specialized data sets (in a real app, these would be fetched only when the view changes)
         // For this demo, we'll just fetch them all to keep state simple
-        const ghResult = await fetchGithubAnalytics();
+        const ghResult = await fetchGithubAnalytics(timeRange);
         setGithubData(ghResult);
 
         // Fetch Copilot analytics
