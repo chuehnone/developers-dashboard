@@ -13,6 +13,31 @@ import {
   PRCreatedAnalysis,
 } from '../../../types';
 
+/**
+ * Filters pull requests by creation date within specified days from now
+ * @param prs - Array of GitHub pull requests
+ * @param days - Number of days to look back from today (0 = no filtering)
+ * @returns Filtered array of PRs created within the time range
+ */
+export function filterPRsByCreationDate(
+  prs: GitHubPullRequest[],
+  days: number
+): GitHubPullRequest[] {
+  // If days is 0 or negative, return all PRs (backward compatible)
+  if (days <= 0) {
+    return prs;
+  }
+
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+  cutoffDate.setHours(0, 0, 0, 0); // Start of day
+
+  return prs.filter((pr) => {
+    const createdAt = new Date(pr.createdAt);
+    return createdAt >= cutoffDate;
+  });
+}
+
 export interface CycleTimeBreakdown {
   codingTime: number;
   pickupTime: number;
@@ -94,9 +119,13 @@ function mapGitHubPRToAppPR(pr: GitHubPullRequest, repoName?: string): PullReque
 
 export function aggregateUserPullRequests(
   allPRs: GitHubPullRequest[],
-  userLogin: string
+  userLogin: string,
+  days: number = 0
 ): GithubStats {
-  const userPRs = allPRs.filter(
+  // Filter PRs by creation date if days is specified
+  const filteredPRs = filterPRsByCreationDate(allPRs, days);
+
+  const userPRs = filteredPRs.filter(
     (pr) => pr.author.login.toLowerCase() === userLogin.toLowerCase()
   );
 
@@ -112,7 +141,7 @@ export function aggregateUserPullRequests(
   const avgCycleTimeHours = mergedPRs.length > 0 ? totalCycleTime / mergedPRs.length : 0;
 
   // Count review comments given by this user on OTHER people's PRs
-  const reviewCommentsGiven = allPRs.reduce((sum, pr) => {
+  const reviewCommentsGiven = filteredPRs.reduce((sum, pr) => {
     // Skip PRs authored by this user - only count reviews on others' PRs
     if (pr.author.login.toLowerCase() === userLogin.toLowerCase()) {
       return sum;
@@ -162,6 +191,9 @@ function calculateDailyCycleTimeTrend(
   allPRs: GitHubPullRequest[],
   days: number = 30
 ): CycleTimeDaily[] {
+  // Filter PRs by creation date before calculating trends
+  const filteredPRs = filterPRsByCreationDate(allPRs, days);
+
   const now = new Date();
   const dailyData: Map<string, CycleTimeBreakdown[]> = new Map();
 
@@ -174,7 +206,7 @@ function calculateDailyCycleTimeTrend(
   }
 
   // Group PRs by merge date
-  const mergedPRs = allPRs.filter((pr) => pr.mergedAt);
+  const mergedPRs = filteredPRs.filter((pr) => pr.mergedAt);
   for (const pr of mergedPRs) {
     if (!pr.mergedAt) continue;
 
@@ -222,9 +254,15 @@ function calculateDailyCycleTimeTrend(
   return result;
 }
 
-export function buildGithubAnalyticsData(allPRs: GitHubPullRequest[]): GithubAnalyticsData {
-  const mergedPRs = allPRs.filter((pr) => pr.state === 'MERGED');
-  const openPRs = allPRs.filter((pr) => pr.state === 'OPEN');
+export function buildGithubAnalyticsData(
+  allPRs: GitHubPullRequest[],
+  days: number = 0
+): GithubAnalyticsData {
+  // Filter PRs by creation date if days is specified
+  const filteredPRs = filterPRsByCreationDate(allPRs, days);
+
+  const mergedPRs = filteredPRs.filter((pr) => pr.state === 'MERGED');
+  const openPRs = filteredPRs.filter((pr) => pr.state === 'OPEN');
 
   // Calculate summary metrics
   const cycleBreakdowns = mergedPRs.map((pr) => calculateCycleTime(pr));
@@ -234,10 +272,10 @@ export function buildGithubAnalyticsData(allPRs: GitHubPullRequest[]): GithubAna
     cycleBreakdowns.reduce((sum, b) => sum + b.pickupTime, 0) / cycleBreakdowns.length || 0;
   const avgReviewTime =
     cycleBreakdowns.reduce((sum, b) => sum + b.reviewTime, 0) / cycleBreakdowns.length || 0;
-  const mergeRate = allPRs.length > 0 ? (mergedPRs.length / allPRs.length) * 100 : 0;
+  const mergeRate = filteredPRs.length > 0 ? (mergedPRs.length / filteredPRs.length) * 100 : 0;
 
   // Calculate cycle time trend
-  const cycleTimeTrend = calculateDailyCycleTimeTrend(allPRs, 14);
+  const cycleTimeTrend = calculateDailyCycleTimeTrend(filteredPRs, Math.min(days || 14, 14));
 
   // Build scatter data (PR size vs time)
   const scatterData = mergedPRs.map((pr) => {
@@ -250,14 +288,19 @@ export function buildGithubAnalyticsData(allPRs: GitHubPullRequest[]): GithubAna
     };
   });
 
-  // Find stale PRs (open for more than 7 days with no recent activity)
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  // Find stale PRs with dynamic threshold based on time range
+  // Calculate dynamic stale threshold: 50% of time range (min 3 days, max 14 days)
+  const staleDaysThreshold = days > 0
+    ? Math.max(3, Math.min(14, Math.floor(days * 0.5)))
+    : 7; // Default to 7 days if no time range
+
+  const staleThresholdDate = new Date();
+  staleThresholdDate.setDate(staleThresholdDate.getDate() - staleDaysThreshold);
 
   const stalePRs = openPRs
     .filter((pr) => {
       const updatedAt = new Date(pr.updatedAt);
-      return updatedAt < sevenDaysAgo;
+      return updatedAt < staleThresholdDate;
     })
     .map((pr) => mapGitHubPRToAppPR(pr));
 
@@ -341,10 +384,14 @@ export interface DeveloperCommentGivenAnalysis {
  */
 export function analyzeCommentsOnDeveloperPRs(
   allPRs: GitHubPullRequest[],
-  userLogin: string
+  userLogin: string,
+  days: number = 0
 ): DeveloperCommentAnalysis {
+  // Filter PRs by creation date if days is specified
+  const filteredPRs = filterPRsByCreationDate(allPRs, days);
+
   // Get PRs authored by this developer
-  const userPRs = allPRs.filter(
+  const userPRs = filteredPRs.filter(
     (pr) => pr.author.login.toLowerCase() === userLogin.toLowerCase()
   );
 
@@ -416,14 +463,18 @@ export function analyzeCommentsOnDeveloperPRs(
  */
 export function analyzeCommentsGivenByDeveloper(
   allPRs: GitHubPullRequest[],
-  userLogin: string
+  userLogin: string,
+  days: number = 0
 ): DeveloperCommentGivenAnalysis {
   const user = userLogin.toLowerCase();
+
+  // Filter PRs by creation date if days is specified
+  const filteredPRs = filterPRsByCreationDate(allPRs, days);
 
   // Map to track PRs and comment counts
   const prCommentMap = new Map<string, PRCommentedOnStats>();
 
-  for (const pr of allPRs) {
+  for (const pr of filteredPRs) {
     const prAuthor = pr.author.login.toLowerCase();
 
     // Skip PRs authored by this user - only analyze comments on OTHERS' PRs
@@ -508,12 +559,16 @@ export function analyzeCommentsGivenByDeveloper(
  */
 export function analyzePRsCreatedByDeveloper(
   allPRs: GitHubPullRequest[],
-  userLogin: string
+  userLogin: string,
+  days: number = 0
 ): PRCreatedAnalysis {
   const user = userLogin.toLowerCase();
 
+  // Filter PRs by creation date if days is specified
+  const filteredPRs = filterPRsByCreationDate(allPRs, days);
+
   // Filter to PRs authored by this developer
-  const userPRs = allPRs.filter(
+  const userPRs = filteredPRs.filter(
     (pr) => pr.author.login.toLowerCase() === user
   );
 

@@ -251,13 +251,13 @@ export async function fetchDashboardData(
 
       for (const dev of developerMap) {
         // Get GitHub stats
-        const githubStats = aggregateUserPullRequests(allPRs, dev.githubLogin);
+        const githubStats = aggregateUserPullRequests(allPRs, dev.githubLogin, days);
 
         // Get activity trend
         const recentActivityTrend = getRecentActivityTrend(allPRs, dev.githubLogin, 7);
 
         // Get comment analysis (comments RECEIVED on developer's PRs)
-        const commentStats = analyzeCommentsOnDeveloperPRs(allPRs, dev.githubLogin);
+        const commentStats = analyzeCommentsOnDeveloperPRs(allPRs, dev.githubLogin, days);
 
         // Transform to app-level type with avatar URLs
         const commentAnalysis: PRCommentAnalysis = {
@@ -277,7 +277,7 @@ export async function fetchDashboardData(
         };
 
         // Get comment given analysis (comments GIVEN by developer on others' PRs)
-        const commentGivenStats = analyzeCommentsGivenByDeveloper(allPRs, dev.githubLogin);
+        const commentGivenStats = analyzeCommentsGivenByDeveloper(allPRs, dev.githubLogin, days);
 
         // Transform to app-level type
         const commentGivenAnalysis: PRCommentGivenAnalysis = {
@@ -301,7 +301,8 @@ export async function fetchDashboardData(
         // Analyze PRs created by developer
         const prCreatedAnalysis: PRCreatedAnalysis = analyzePRsCreatedByDeveloper(
           allPRs,
-          dev.githubLogin
+          dev.githubLogin,
+          days
         );
 
         const developer: Developer = {
@@ -381,7 +382,7 @@ export async function fetchGithubAnalytics(
         console.log(`[GitHub Analytics] Data coverage: ${daysCovered} days (target: ${days} days)`);
       }
 
-      return buildGithubAnalyticsData(allPRs);
+      return buildGithubAnalyticsData(allPRs, days);
     },
     fetchMockGithubAnalytics
   );
